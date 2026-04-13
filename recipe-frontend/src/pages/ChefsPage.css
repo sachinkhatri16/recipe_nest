@@ -1,0 +1,502 @@
+/* =================================================================
+   ChefsPage – Same visual DNA as Homepage & RecipesPage
+   Emerald / slate / white.  No emojis.  Image-led hero.
+   ================================================================= */
+
+/* ---- Root ---- */
+.cp-root {
+  min-height: 100vh;
+  background: #fafaf9;
+  color: #1e293b;
+}
+
+/* =================================================================
+   Hero — Full bleed
+   ================================================================= */
+.cp-hero {
+  position: relative;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .cp-hero { min-height: 460px; }
+}
+
+.cp-hero-bg {
+  position: absolute;
+  inset: 0;
+}
+
+.cp-hero-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cp-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    rgba(2, 6, 12, 0.84) 0%,
+    rgba(2, 6, 12, 0.58) 50%,
+    rgba(2, 6, 12, 0.22) 100%
+  );
+}
+
+.cp-hero-inner {
+  position: relative;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 4rem 1.25rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .cp-hero-inner { padding: 5rem 2rem; }
+}
+
+.cp-hero-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #34d399;
+  margin: 0 0 1rem;
+}
+
+.cp-hero-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1.1;
+  color: #fff;
+  max-width: 16ch;
+  margin: 0 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .cp-hero-title { font-size: 3rem; }
+}
+
+@media (min-width: 1024px) {
+  .cp-hero-title { font-size: 3.5rem; }
+}
+
+.cp-hero-sub {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 34rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* =================================================================
+   Main content
+   ================================================================= */
+.cp-main {
+  padding: 3rem 0 4rem;
+}
+
+.cp-container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .cp-container { padding: 0 2rem; }
+}
+
+/* ---- Search ---- */
+.cp-search-bar {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.cp-search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.cp-search-input {
+  width: 100%;
+  padding: 0.8rem 2.8rem 0.8rem 2.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cp-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.cp-search-input:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.08);
+}
+
+.cp-search-clear {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem;
+  color: #94a3b8;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+}
+
+.cp-search-clear:hover { color: #475569; }
+.cp-search-clear-icon { width: 16px; height: 16px; }
+
+/* ---- Meta row ---- */
+.cp-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cp-result-count {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* =================================================================
+   Chef card grid
+   ================================================================= */
+.cp-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .cp-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ---- Card ---- */
+.cp-card {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 1rem;
+  padding: 1.75rem 1.5rem;
+  transition: transform 0.28s ease, box-shadow 0.28s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cp-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+/* Top: avatar + identity */
+.cp-card-top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cp-card-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cp-card-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #059669;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid rgba(52, 211, 153, 0.35);
+}
+
+.cp-card-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.cp-card-badge-icon {
+  width: 15px;
+  height: 15px;
+  color: #059669;
+}
+
+.cp-card-identity {
+  min-width: 0;
+}
+
+.cp-card-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.15rem;
+  line-height: 1.2;
+}
+
+.cp-card-specialty {
+  font-size: 0.82rem;
+  color: #059669;
+  font-weight: 600;
+  margin: 0 0 0.15rem;
+}
+
+.cp-card-region {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Bio */
+.cp-card-bio {
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Stats */
+.cp-card-stats {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cp-card-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.7rem 0;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+}
+
+.cp-card-stat-icon {
+  width: 14px;
+  height: 14px;
+  color: #94a3b8;
+}
+
+.cp-card-stat-star {
+  fill: #059669;
+  color: #059669;
+}
+
+.cp-card-stat-num {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+}
+
+.cp-card-stat-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #94a3b8;
+}
+
+/* Featured recipe thumbnails */
+.cp-card-featured {
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.cp-card-featured-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #94a3b8;
+  margin: 0 0 0.65rem;
+}
+
+.cp-card-featured-row {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+}
+
+.cp-card-thumb {
+  flex-shrink: 0;
+  width: 110px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  transition: border-color 0.2s;
+}
+
+.cp-card-thumb:hover {
+  border-color: #e2e8f0;
+}
+
+.cp-card-thumb-img {
+  width: 100%;
+  height: 68px;
+  object-fit: cover;
+}
+
+.cp-card-thumb-info {
+  padding: 0.35rem 0.45rem;
+}
+
+.cp-card-thumb-name {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cp-card-thumb-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.62rem;
+  color: #94a3b8;
+  margin-top: 0.1rem;
+}
+
+.cp-card-thumb-clock {
+  width: 10px;
+  height: 10px;
+}
+
+/* CTA */
+.cp-card-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.25);
+  transition: background 0.2s, border-color 0.2s;
+  margin-top: auto;
+}
+
+.cp-card-cta:hover {
+  background: #ecfdf5;
+  border-color: rgba(5, 150, 105, 0.4);
+}
+
+.cp-card-cta-icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---- Empty ---- */
+.cp-empty {
+  text-align: center;
+  padding: 5rem 1rem;
+}
+
+.cp-empty-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.35rem;
+}
+
+.cp-empty-sub {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 1.5rem;
+}
+
+.cp-empty-reset {
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #059669;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cp-empty-reset:hover { background: #047857; }
+
+/* ---- Footer ---- */
+.cp-footer {
+  border-top: 1px solid #e2e8f0;
+  background: #fafaf9;
+  padding: 2rem 0;
+}
+
+.cp-footer-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cp-footer-brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+}
+
+.cp-footer-accent { color: #059669; }
+
+.cp-footer-copy {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
