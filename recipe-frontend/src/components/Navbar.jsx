@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ChefHat, Menu, X } from "lucide-react";
+import { ArrowRight, ChefHat, Menu, X, LogOut, User } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const navLinks = [
   { label: "Home", to: "/" },
@@ -11,6 +12,7 @@ const navLinks = [
 
 export default function Navbar({ activeItem = "Home" }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
 
   const linkClasses = (label, mobile = false) => {
     const isActive = label === activeItem;
@@ -56,19 +58,40 @@ export default function Navbar({ activeItem = "Home" }) {
           </div>
 
           <div className="hidden items-center gap-3 lg:flex">
-            <a
-              href="#signin"
-              className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
-            >
-              Sign In
-            </a>
-            <a
-              href="#join"
-              className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-            >
-              Join Free
-              <ArrowRight className="h-4 w-4" />
-            </a>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4">
+                <Link 
+                  to={user?.role === 'chef' ? "/chef-dashboard" : "/profile"} 
+                  className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-emerald-700 ${activeItem === 'Profile' || activeItem === 'Dashboard' ? 'text-emerald-700' : 'text-slate-700'}`}
+                >
+                  <User className="h-4 w-4 text-emerald-600" />
+                  {user?.role === 'chef' ? 'Dashboard' : user?.name}
+                </Link>
+                <button
+                  onClick={logout}
+                  className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-red-600 hover:bg-slate-50 flex items-center gap-1.5"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/auth?tab=login"
+                  className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/auth?tab=signup"
+                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5 duration-200"
+                >
+                  Join Free
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </>
+            )}
           </div>
 
           <button
@@ -104,21 +127,46 @@ export default function Navbar({ activeItem = "Home" }) {
               </div>
 
               <div className="mt-4 border-t border-slate-200 pt-4">
-                <a
-                  href="#signin"
-                  className="inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Sign In
-                </a>
-                <a
-                  href="#join"
-                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-emerald-700"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Join Free
-                  <ArrowRight className="h-4 w-4" />
-                </a>
+                {isAuthenticated ? (
+                  <>
+                    <Link
+                      to={user?.role === 'chef' ? "/chef-dashboard" : "/profile"}
+                      className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-base font-medium mb-2 ${activeItem === 'Profile' || activeItem === 'Dashboard' ? 'text-emerald-700 bg-emerald-50' : 'text-slate-700 hover:bg-slate-50'}`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                       <User className="h-4 w-4" />
+                      {user?.role === 'chef' ? 'Dashboard' : user?.name}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-red-50 hover:text-red-700"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/auth?tab=login"
+                      className="inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      to="/auth?tab=signup"
+                      className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-emerald-700"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Join Free
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

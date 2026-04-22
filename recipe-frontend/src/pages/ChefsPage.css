@@ -412,12 +412,18 @@
 }
 
 /* CTA */
+.cp-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
 .cp-card-cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  width: 100%;
+  flex: 1;
   padding: 0.65rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.85rem;
@@ -425,12 +431,36 @@
   color: #059669;
   border: 1px solid rgba(5, 150, 105, 0.25);
   transition: background 0.2s, border-color 0.2s;
-  margin-top: auto;
 }
 
 .cp-card-cta:hover {
   background: #ecfdf5;
   border-color: rgba(5, 150, 105, 0.4);
+}
+
+.cp-card-follow-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #475569;
+  background: white;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.cp-card-follow-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.cp-card-follow-btn.is-followed {
+  background-color: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
 }
 
 .cp-card-cta-icon {

@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Clock3, Search, Star, X, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Clock3, Search, Star, X, SlidersHorizontal, ChevronDown, Heart } from "lucide-react";
 import Navbar from "../components/Navbar";
+import { useAuth } from "../context/AuthContext";
 import "./RecipesPage.css";
 
 /* ------------------------------------------------------------------ */
@@ -176,6 +177,9 @@ function FilterDropdown({ label, options, value, onChange, icon }) {
 /*  Card                                                               */
 /* ------------------------------------------------------------------ */
 function RecipeCard({ recipe }) {
+  const { user, toggleSaveRecipe } = useAuth();
+  const isSaved = user?.savedRecipes?.includes(recipe.id);
+
   const levelClass =
     recipe.level === "Easy"
       ? "rp-level-easy"
@@ -184,20 +188,32 @@ function RecipeCard({ recipe }) {
         : "rp-level-hard";
 
   return (
-    <Link to={`/recipes/${recipe.id}`} className="rp-card-link">
     <article className="rp-card">
       <div className="rp-card-img-wrap">
-        <img
-          src={recipe.image}
-          alt={recipe.name}
-          className="rp-card-img"
-          loading="lazy"
-        />
+        <Link to={`/recipes/${recipe.id}`} className="rp-card-img-link-full">
+          <img
+            src={recipe.image}
+            alt={recipe.name}
+            className="rp-card-img"
+            loading="lazy"
+          />
+        </Link>
         <span className="rp-card-origin">{recipe.origin}</span>
+        {user && (
+          <button 
+            className={`rp-card-save-btn ${isSaved ? 'is-saved' : ''}`}
+            onClick={() => toggleSaveRecipe(recipe.id)}
+            aria-label={isSaved ? "Unsave recipe" : "Save recipe"}
+          >
+            <Heart className={`rp-card-save-icon ${isSaved ? 'fill-current' : ''}`} />
+          </button>
+        )}
       </div>
 
       <div className="rp-card-body">
-        <h3 className="rp-card-title">{recipe.name}</h3>
+        <Link to={`/recipes/${recipe.id}`} className="rp-card-title-link">
+          <h3 className="rp-card-title">{recipe.name}</h3>
+        </Link>
         <p className="rp-card-desc">{recipe.description}</p>
 
         <div className="rp-card-footer">
@@ -216,7 +232,6 @@ function RecipeCard({ recipe }) {
         </div>
       </div>
     </article>
-    </Link>
   );
 }
 

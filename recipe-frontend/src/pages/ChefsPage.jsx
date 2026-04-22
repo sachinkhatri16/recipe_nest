@@ -8,8 +8,11 @@ import {
   Search,
   Star,
   X,
+  UserPlus,
+  UserCheck,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
+import { useAuth } from "../context/AuthContext";
 import "./ChefsPage.css";
 
 /* ------------------------------------------------------------------ */
@@ -92,6 +95,7 @@ const CHEFS = [
 /* ------------------------------------------------------------------ */
 export default function ChefsPage() {
   const [query, setQuery] = useState("");
+  const { user, toggleSaveChef } = useAuth();
 
   const filtered = useMemo(() => {
     if (!query.trim()) return CHEFS;
@@ -183,8 +187,10 @@ export default function ChefsPage() {
             </div>
           ) : (
             <div className="cp-grid">
-              {filtered.map((chef) => (
-                <article key={chef.id} className="cp-card">
+              {filtered.map((chef) => {
+                const isFollowed = user?.savedChefs?.includes(chef.id);
+                return (
+                  <article key={chef.id} className="cp-card">
                   {/* Top band -- avatar / identity */}
                   <div className="cp-card-top">
                     <div className="cp-card-avatar-wrap">
@@ -214,11 +220,6 @@ export default function ChefsPage() {
                       <span className="cp-card-stat-label">Recipes</span>
                     </div>
                     <div className="cp-card-stat">
-                      <Star className="cp-card-stat-icon cp-card-stat-star" />
-                      <span className="cp-card-stat-num">{chef.rating}</span>
-                      <span className="cp-card-stat-label">Rating</span>
-                    </div>
-                    <div className="cp-card-stat">
                       <ChefHat className="cp-card-stat-icon" />
                       <span className="cp-card-stat-num">{chef.yearsExp}</span>
                       <span className="cp-card-stat-label">Years</span>
@@ -228,16 +229,37 @@ export default function ChefsPage() {
 
 
                   {/* CTA */}
-                  <Link to="/recipes" className="cp-card-cta">
-                    View All Recipes
-                    <ArrowRight className="cp-card-cta-icon" />
-                  </Link>
+                  <div className="cp-card-actions">
+                    <Link to="/recipes" className="cp-card-cta">
+                      View All Recipes
+                      <ArrowRight className="cp-card-cta-icon" />
+                    </Link>
+                    {user && (
+                      <button 
+                        className={`cp-card-follow-btn ${isFollowed ? 'is-followed' : ''}`}
+                        onClick={() => toggleSaveChef(chef.id)}
+                      >
+                        {isFollowed ? (
+                          <>
+                            <UserCheck className="w-4 h-4" />
+                            Following
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4" />
+                            Follow
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </article>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </main>
 
       {/* Footer */}
       <footer className="cp-footer">

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -10,8 +10,12 @@ import {
   Star,
   Users,
   UtensilsCrossed,
+  Heart,
+  Bookmark,
+  MessageSquare
 } from "lucide-react";
 import Navbar from "../components/Navbar";
+import { useAuth } from "../context/AuthContext";
 import "./RecipeDetailPage.css";
 
 /* ------------------------------------------------------------------ */
@@ -400,11 +404,26 @@ const RECIPES = [
 /* ------------------------------------------------------------------ */
 export default function RecipeDetailPage() {
   const { id } = useParams();
-
+  const { isAuthenticated, user, toggleSaveRecipe, toggleSaveChef } = useAuth();
+  
+  const isRecipeSaved = user?.savedRecipes?.includes(Number(id));
   const recipe = useMemo(
     () => RECIPES.find((r) => String(r.id) === id),
     [id]
   );
+  const isChefSaved = user?.savedChefs?.includes(recipe?.chefId);
+
+  const [reviewText, setReviewText] = useState("");
+  const [activeTab, setActiveTab] = useState("ingredients");
+  const [reviewsList, setReviewsList] = useState([
+    { id: 1, user: "Aarav B.", text: "Absolutely loved this! Perfect balance of spices.", date: "2 days ago" },
+    { id: 2, user: "Maya S.", text: "This is a great recipe, maybe slightly too much salt for my taste but otherwise excellent.", date: "1 week ago" }
+  ]);
+
+  const otherRecipes = useMemo(() => {
+    if (!recipe) return [];
+    return RECIPES.filter(r => r.chefId === recipe.chefId && r.id !== recipe.id).slice(0, 2);
+  }, [recipe]);
 
   if (!recipe) {
     return (
@@ -449,10 +468,27 @@ export default function RecipeDetailPage() {
         </div>
 
         <div className="rd-hero-inner">
-          <Link to="/recipes" className="rd-back">
-            <ArrowLeft className="rd-back-icon" />
-            All Recipes
-          </Link>
+          <div className="rd-hero-top">
+            <Link to="/recipes" className="rd-back">
+              <ArrowLeft className="rd-back-icon" />
+              All Recipes
+            </Link>
+            
+            {isAuthenticated ? (
+              <button 
+                className={`rd-save-btn ${isRecipeSaved ? 'saved' : ''}`}
+                onClick={() => toggleSaveRecipe(Number(id))}
+              >
+                <Bookmark className="rd-save-icon" fill={isRecipeSaved ? "currentColor" : "none"} />
+                {isRecipeSaved ? "Saved" : "Save Recipe"}
+              </button>
+            ) : (
+              <button className="rd-save-btn disabled" title="Please log in to save recipes">
+                <Bookmark className="rd-save-icon" />
+                Save Recipe
+              </button>
+            )}
+          </div>
 
           <div className="rd-hero-content">
             <span className="rd-hero-origin">{recipe.origin}</span>
@@ -483,6 +519,23 @@ export default function RecipeDetailPage() {
       </section>
 
       {/* ============================================================ */}
+      {/*  Tabs Navigation                                             */}
+      {/* ============================================================ */}
+      <div className="rd-tabs-nav-container">
+        <div className="rd-tabs-nav">
+          <button className={`rd-tab-link ${activeTab === 'about' ? 'active' : ''}`} onClick={() => setActiveTab('about')}>About</button>
+          <button className={`rd-tab-link ${activeTab === 'ingredients' ? 'active' : ''}`} onClick={() => setActiveTab('ingredients')}>Ingredients</button>
+          <button className={`rd-tab-link ${activeTab === 'instructions' ? 'active' : ''}`} onClick={() => setActiveTab('instructions')}>Instructions</button>
+          {recipe.tips && recipe.tips.length > 0 && (
+             <button className={`rd-tab-link ${activeTab === 'chef-tips' ? 'active' : ''}`} onClick={() => setActiveTab('chef-tips')}>Chef's Notes</button>
+          )}
+          <button className={`rd-tab-link ${activeTab === 'reviews' ? 'active' : ''}`} onClick={() => setActiveTab('reviews')}>
+            Reviews <span className="rd-tab-badge">{recipe.reviews}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ============================================================ */}
       {/*  Content                                                     */}
       {/* ============================================================ */}
       <main className="rd-main">
@@ -491,47 +544,104 @@ export default function RecipeDetailPage() {
             {/* ---- Left column: recipe body ---- */}
             <div className="rd-body">
               {/* About */}
-              <section className="rd-section">
-                <h2 className="rd-section-title">About this dish</h2>
-                <p className="rd-section-text">{recipe.longDescription}</p>
-              </section>
+              {activeTab === 'about' && (
+                <section id="about" className="rd-section">
+                  <h2 className="rd-section-title">About this dish</h2>
+                  <p className="rd-section-text">{recipe.longDescription}</p>
+                </section>
+              )}
 
               {/* Ingredients */}
-              <section className="rd-section">
-                <h2 className="rd-section-title">Ingredients</h2>
-                <ul className="rd-ingredients">
-                  {recipe.ingredients.map((item, i) => (
-                    <li key={i} className="rd-ingredient">
-                      <span className="rd-ingredient-dot" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              {/* Steps */}
-              <section className="rd-section">
-                <h2 className="rd-section-title">Instructions</h2>
-                <ol className="rd-steps">
-                  {recipe.steps.map((step, i) => (
-                    <li key={i} className="rd-step">
-                      <span className="rd-step-num">{i + 1}</span>
-                      <p className="rd-step-text">{step}</p>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-
-              {/* Tips */}
-              {recipe.tips && recipe.tips.length > 0 && (
-                <section className="rd-section rd-tips-section">
-                  <h2 className="rd-section-title">Chef's Tips</h2>
-                  <ul className="rd-tips">
-                    {recipe.tips.map((tip, i) => (
-                      <li key={i} className="rd-tip">{tip}</li>
+              {activeTab === 'ingredients' && (
+                <section id="ingredients" className="rd-section">
+                  <h2 className="rd-section-title">Ingredients</h2>
+                  <ul className="rd-ingredients">
+                    {recipe.ingredients.map((item, i) => (
+                      <li key={i} className="rd-ingredient">
+                        <span className="rd-ingredient-dot" />
+                        {item}
+                      </li>
                     ))}
                   </ul>
                 </section>
+              )}
+
+              {/* Steps */}
+              {activeTab === 'instructions' && (
+                <section id="instructions" className="rd-section">
+                  <h2 className="rd-section-title">Instructions</h2>
+                  <ol className="rd-steps">
+                    {recipe.steps.map((step, i) => (
+                      <li key={i} className="rd-step">
+                        <span className="rd-step-num">{i + 1}</span>
+                        <p className="rd-step-text">{step}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              )}
+
+              {/* Tips */}
+              {activeTab === 'chef-tips' && recipe.tips && recipe.tips.length > 0 && (
+                <section id="chef-tips" className="rd-section">
+                  <div className="rd-chef-notes-card">
+                    <div className="rd-chef-notes-header">
+                      <div className="rd-chef-notes-avatar">{recipe.chefInitials}</div>
+                      <div>
+                        <p className="rd-chef-notes-name">{recipe.chef}</p>
+                        <p className="rd-chef-notes-label">CHEF'S TIPS</p>
+                      </div>
+                    </div>
+                    <ul className="rd-chef-notes-list">
+                      {recipe.tips.map((tip, i) => (
+                        <li key={i} className="rd-chef-notes-item">{tip}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              )}
+
+              {/* Reviews */}
+              {activeTab === 'reviews' && (
+                <section id="reviews" className="rd-section">
+                  <h2 className="rd-section-title">Reviews ({recipe.reviews})</h2>
+                
+                {isAuthenticated ? (
+                  <form className="rd-review-form" onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!reviewText.trim()) return;
+                    setReviewsList([{ id: Date.now(), user: "You", text: reviewText, date: "Just now" }, ...reviewsList]);
+                    setReviewText("");
+                  }}>
+                    <textarea 
+                      className="rd-review-input" 
+                      placeholder="What did you think of this recipe?" 
+                      value={reviewText}
+                      onChange={(e) => setReviewText(e.target.value)}
+                    />
+                    <div className="rd-review-actions">
+                      <button type="submit" className="rd-review-submit">Post Review</button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="rd-login-prompt">
+                    <MessageSquare className="rd-login-icon" />
+                    <p>Food lovers must be logged in to share their thoughts.</p>
+                  </div>
+                )}
+                
+                <div className="rd-reviews-list">
+                  {reviewsList.map(review => (
+                    <div key={review.id} className="rd-review-item">
+                      <div className="rd-review-header">
+                        <span className="rd-review-user">{review.user}</span>
+                        <span className="rd-review-date">{review.date}</span>
+                      </div>
+                      <p className="rd-review-text">{review.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
               )}
             </div>
 
@@ -589,11 +699,47 @@ export default function RecipeDetailPage() {
                     <p className="rd-chef-specialty">{recipe.chefSpecialty}</p>
                   </div>
                 </div>
-                <Link to="/chefs" className="rd-chef-link">
-                  <BookOpen className="rd-chef-link-icon" />
-                  View Chef Profile
-                </Link>
+                <div className="rd-chef-actions">
+                  <Link to="/chefs" className="rd-chef-link">
+                    <BookOpen className="rd-chef-link-icon" />
+                    View Profile
+                  </Link>
+                  {isAuthenticated ? (
+                    <button 
+                      className={`rd-chef-save-btn ${isChefSaved ? 'saved' : ''}`}
+                      onClick={() => toggleSaveChef(recipe.chefId)}
+                    >
+                      <Heart className="rd-chef-link-icon" fill={isChefSaved ? "currentColor" : "none"} />
+                      {isChefSaved ? "Following" : "Follow Chef"}
+                    </button>
+                  ) : (
+                    <button className="rd-chef-save-btn disabled" title="Please log in to save chefs">
+                      <Heart className="rd-chef-link-icon" />
+                      Save Chef
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Other recipes */}
+              {otherRecipes.length > 0 && (
+                <div className="rd-sidebar-card">
+                  <p className="rd-sidebar-card-label">More by {recipe.chef}</p>
+                  <div className="rd-other-recipes">
+                    {otherRecipes.map(r => (
+                      <Link key={r.id} to={`/recipes/${r.id}`} className="rd-other-recipe">
+                        <img src={r.image} alt={r.name} className="rd-other-img" />
+                        <div className="rd-other-info">
+                          <p className="rd-other-name">{r.name}</p>
+                          <span className="rd-other-rating">
+                            <Star className="rd-other-star" /> {r.rating}
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </aside>
           </div>
         </div>

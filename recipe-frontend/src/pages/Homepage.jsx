@@ -223,12 +223,12 @@ export default function Homepage() {
             <div className="hp-footer-links">
               <div>
                 <p className="hp-footer-col-title">Company</p>
-                <a href="#about" className="hp-footer-link">About Us</a>
+                <Link to="/about" className="hp-footer-link">About Us</Link>
               </div>
               <div>
                 <p className="hp-footer-col-title">Resources</p>
                 <Link to="/recipes" className="hp-footer-link">Recipes</Link>
-                <a href="#chefs" className="hp-footer-link">Chefs</a>
+                <Link to="/chefs" className="hp-footer-link">Chefs</Link>
               </div>
             </div>
           </div>
