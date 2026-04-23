@@ -7,6 +7,8 @@ import AboutPage from "./pages/AboutPage.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import ChefDashboard from "./pages/ChefDashboard.jsx";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
+import ChefVerification from "./pages/ChefVerification.jsx";
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/chef-dashboard" element={<ChefDashboard />} />
+          <Route path="/chef-verification" element={<ChefVerification />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
         </Routes>
       </div>
     </Router>

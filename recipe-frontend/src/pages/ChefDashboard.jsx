@@ -7,7 +7,7 @@ import {
   Star,
   LogOut,
   Eye,
-  Heart,
+
   X,
   ChefHat,
   Pencil,
@@ -25,7 +25,10 @@ import {
   Globe,
   Link2,
   AtSign,
+  Shield,
+  Lock,
 } from "lucide-react";
+import { recipeAPI, chefAPI } from "../services/api";
 import "./ChefDashboard.css";
 
 /* ──────────────────────────────────────────
@@ -54,94 +57,8 @@ const EMPTY_RECIPE = {
   allowComments: true,
 };
 
-/* ──────────────────────────────────────────
-   MOCK DATA (v2 structured format)
-   ────────────────────────────────────────── */
-const INITIAL_CHEF_RECIPES = [
-  {
-    id: 1,
-    title: "Momo",
-    status: "Published",
-    coverImage: "/images/recipes/momo.png",
-    category: "Nepali",
-    servings: "4",
-    prepTime: "30",
-    cookTime: "15",
-    description: "Traditional Nepali steamed dumplings filled with spiced chicken and served with tomato chutney.",
-    tags: ["nepali", "dumplings", "steamed"],
-    ingredients: [
-      { id: 1, amount: "2", unit: "cups", name: "All-purpose flour", notes: "" },
-      { id: 2, amount: "500", unit: "g", name: "Chicken mince", notes: "" },
-      { id: 3, amount: "1", unit: "whole", name: "Onion, finely chopped", notes: "" },
-      { id: 4, amount: "3", unit: "pieces", name: "Garlic cloves, minced", notes: "" },
-      { id: 5, amount: "2", unit: "tbsp", name: "Soy sauce", notes: "" },
-    ],
-    instructions: [
-      { id: 1, text: "Make dough by combining flour with water and knead until smooth. Rest for 30 minutes.", image: "" },
-      { id: 2, text: "Prepare filling by mixing chicken mince with onions, garlic, ginger, soy sauce, and spices.", image: "" },
-      { id: 3, text: "Roll dough into thin circles, fill with the mixture, and pleat to seal.", image: "" },
-      { id: 4, text: "Steam for 15-20 minutes until cooked through. Serve with tomato chutney.", image: "" },
-    ],
-    chefNote: "Serve hot with spicy tomato chutney for the authentic experience.",
-    isPublic: true,
-    allowComments: true,
-    views: 1240,
-    likes: 450,
-    reviews: 24,
-    lastUpdated: "2 days ago",
-  },
-  {
-    id: 3,
-    title: "Sel Roti",
-    status: "Published",
-    coverImage: "/images/recipes/sel-roti.png",
-    category: "Nepali",
-    servings: "6",
-    prepTime: "20",
-    cookTime: "30",
-    description: "Traditional ring-shaped sweet bread made during festivals.",
-    tags: ["nepali", "festive", "bread"],
-    ingredients: [
-      { id: 1, amount: "3", unit: "cups", name: "Rice flour", notes: "" },
-      { id: 2, amount: "1", unit: "cups", name: "Sugar", notes: "" },
-      { id: 3, amount: "1", unit: "tsp", name: "Cardamom powder", notes: "" },
-      { id: 4, amount: "3", unit: "tbsp", name: "Ghee", notes: "melted" },
-    ],
-    instructions: [
-      { id: 1, text: "Mix rice flour with sugar, cardamom, and melted ghee.", image: "" },
-      { id: 2, text: "Add enough water to make a thick, smooth batter.", image: "" },
-      { id: 3, text: "Heat oil. Pour batter in a ring shape and deep fry until golden.", image: "" },
-    ],
-    chefNote: "Traditional festive bread best enjoyed during Dashain and Tihar.",
-    isPublic: true,
-    allowComments: true,
-    views: 890,
-    likes: 210,
-    reviews: 15,
-    lastUpdated: "1 week ago",
-  },
-  {
-    id: 99,
-    title: "Thakali Thali",
-    status: "Draft",
-    coverImage: "",
-    category: "Nepali",
-    servings: "",
-    prepTime: "",
-    cookTime: "60",
-    description: "",
-    tags: [],
-    ingredients: [{ id: 1, amount: "", unit: "g", name: "Rice, dal, vegetables", notes: "" }],
-    instructions: [{ id: 1, text: "Coming soon...", image: "" }],
-    chefNote: "",
-    isPublic: false,
-    allowComments: true,
-    views: 0,
-    likes: 0,
-    reviews: 0,
-    lastUpdated: "3 hours ago",
-  },
-];
+/* Mock data removed — recipes are loaded from the API */
+
 
 const SIDEBAR_TABS = [
   { id: "my-recipes", label: "My Recipes", icon: BookOpen },
@@ -154,42 +71,34 @@ const SIDEBAR_TABS = [
    COMPONENT
    ────────────────────────────────────────── */
 export default function ChefDashboard() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const coverInputRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("my-recipes");
+  const isVerified = user?.verificationStatus === "verified";
+  const isPending = user?.verificationStatus === "pending";
+  const isRejected = user?.verificationStatus === "rejected";
   const [editingId, setEditingId] = useState(null);
   const [tagInput, setTagInput] = useState("");
 
-  /* — Recipes state (v2 format) — */
-  const [recipes, setRecipes] = useState(() => {
-    if (typeof window !== "undefined" && user?.name) {
-      const saved = localStorage.getItem(`chef_recipes_v2_${user.name}`);
-      if (saved) return JSON.parse(saved);
-    }
-    return INITIAL_CHEF_RECIPES;
-  });
+  /* — Recipes state (loaded from API) — */
+  const [recipes, setRecipes] = useState([]);
+  const [recipesLoading, setRecipesLoading] = useState(true);
 
   /* — New / Edit recipe form — */
   const [newRecipe, setNewRecipe] = useState(JSON.parse(JSON.stringify(EMPTY_RECIPE)));
 
   /* — Profile settings — */
-  const [profile, setProfile] = useState(() => {
-    if (typeof window !== "undefined" && user?.name) {
-      const saved = localStorage.getItem(`chef_profile_v2_${user.name}`);
-      if (saved) return JSON.parse(saved);
-    }
-    return {
-      displayName: user?.name || "",
-      bio: "",
-      location: "",
-      specialty: "",
-      experience: "",
-      website: "",
-      instagram: "",
-      twitter: "",
-    };
+  const [profile, setProfile] = useState({
+    displayName: user?.name || "",
+    bio: user?.profile?.bio || "",
+    location: user?.profile?.location || "",
+    specialty: user?.profile?.specialty || "",
+    experience: user?.profile?.experience || "",
+    website: user?.profile?.website || "",
+    instagram: user?.profile?.instagram || "",
+    twitter: user?.profile?.twitter || "",
   });
   const [profileSaved, setProfileSaved] = useState(false);
 
@@ -199,12 +108,15 @@ export default function ChefDashboard() {
     else if (user?.role !== "chef") navigate("/profile");
   }, [isAuthenticated, user, navigate]);
 
-  /* — Persist recipes — */
+  /* — Load recipes from API — */
   useEffect(() => {
-    if (user?.name) {
-      localStorage.setItem(`chef_recipes_v2_${user.name}`, JSON.stringify(recipes));
-    }
-  }, [recipes, user?.name]);
+    if (!user) return;
+    recipeAPI
+      .getMyRecipes()
+      .then((data) => setRecipes(data))
+      .catch((err) => console.error("Failed to load recipes:", err))
+      .finally(() => setRecipesLoading(false));
+  }, [user]);
 
   if (!user || user.role !== "chef") return null;
 
@@ -212,7 +124,7 @@ export default function ChefDashboard() {
   const publishedRecipes = recipes.filter((r) => r.status === "Published");
   const draftRecipes = recipes.filter((r) => r.status === "Draft");
   const totalViews = recipes.reduce((s, r) => s + (r.views || 0), 0);
-  const totalLikes = recipes.reduce((s, r) => s + (r.likes || 0), 0);
+
 
   const filledIngredients = newRecipe.ingredients.filter((i) => i.name.trim());
   const filledSteps = newRecipe.instructions.filter((i) => i.text.trim());
@@ -240,29 +152,18 @@ export default function ChefDashboard() {
     setActiveTab(tabId);
   };
 
-  const handleSaveRecipe = (status) => {
+  const handleSaveRecipe = async (status) => {
     if (!newRecipe.title.trim()) return;
-    if (editingId) {
-      setRecipes(
-        recipes.map((r) =>
-          r.id === editingId
-            ? { ...r, ...newRecipe, status, lastUpdated: "Just now" }
-            : r
-        )
-      );
-    } else {
-      setRecipes([
-        {
-          id: Date.now(),
-          ...newRecipe,
-          status,
-          views: 0,
-          likes: 0,
-          reviews: 0,
-          lastUpdated: "Just now",
-        },
-        ...recipes,
-      ]);
+    try {
+      if (editingId) {
+        const updated = await recipeAPI.update(editingId, { ...newRecipe, status });
+        setRecipes(recipes.map((r) => (r._id || r.id) === editingId ? updated : r));
+      } else {
+        const created = await recipeAPI.create({ ...newRecipe, status });
+        setRecipes([created, ...recipes]);
+      }
+    } catch (err) {
+      console.error("Save recipe failed:", err);
     }
     resetForm();
     setActiveTab("my-recipes");
@@ -282,13 +183,18 @@ export default function ChefDashboard() {
 
   const handleEditRecipe = (recipe) => {
     setNewRecipe({ ...JSON.parse(JSON.stringify(recipe)) });
-    setEditingId(recipe.id);
+    setEditingId(recipe._id || recipe.id);
     setActiveTab("add-recipe");
   };
 
-  const handleDeleteRecipe = (id) => {
+  const handleDeleteRecipe = async (id) => {
     if (window.confirm("Are you sure you want to delete this recipe?")) {
-      setRecipes(recipes.filter((r) => r.id !== id));
+      try {
+        await recipeAPI.delete(id);
+        setRecipes(recipes.filter((r) => (r._id || r.id) !== id));
+      } catch (err) {
+        console.error("Delete recipe failed:", err);
+      }
     }
   };
 
@@ -450,6 +356,33 @@ export default function ChefDashboard() {
 
       {/* ─── MAIN CONTENT ─── */}
       <main className="cd-main">
+        {/* ─── VERIFICATION BANNER ─── */}
+        {!isVerified && (
+          <div className={`cd-verify-banner ${isPending ? 'cd-verify-pending' : isRejected ? 'cd-verify-rejected' : 'cd-verify-unverified'}`}>
+            <div className="cd-verify-banner-content">
+              <div className="cd-verify-banner-icon">
+                {isPending ? <Clock size={20} /> : isRejected ? <X size={20} /> : <Shield size={20} />}
+              </div>
+              <div className="cd-verify-banner-text">
+                <h4 className="cd-verify-banner-title">
+                  {isPending ? 'Verification under review' : isRejected ? 'Verification was unsuccessful' : 'Identity verification required'}
+                </h4>
+                <p className="cd-verify-banner-desc">
+                  {isPending
+                    ? 'Your documents are being reviewed. You can draft recipes, but publishing is locked until approval.'
+                    : isRejected
+                    ? `Your verification was rejected${user?.rejectionReason ? `: ${user.rejectionReason}` : '. Please resubmit your documents.'}`
+                    : 'Complete identity verification to unlock recipe publishing.'}
+                </p>
+              </div>
+              <button className="cd-verify-banner-btn" onClick={() => navigate('/chef-verification')}>
+                {isPending ? 'View Status' : isRejected ? 'Resubmit' : 'Verify Now'}
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ═══════════════════════════════════
             MY RECIPES TAB
             ═══════════════════════════════════ */}
@@ -497,13 +430,13 @@ export default function ChefDashboard() {
               </div>
               <div className="cd-stat-card">
                 <div className="cd-stat-icon-wrap cd-stat-rose">
-                  <Heart className="cd-stat-icon" />
+                  <MessageSquare className="cd-stat-icon" />
                 </div>
                 <div className="cd-stat-data">
                   <span className="cd-stat-num">
-                    {totalLikes.toLocaleString()}
+                    {recipes.reduce((s, r) => s + (r.reviews || 0), 0)}
                   </span>
-                  <span className="cd-stat-label">Total Likes</span>
+                  <span className="cd-stat-label">Reviews</span>
                 </div>
               </div>
               <div className="cd-stat-card">
@@ -559,10 +492,7 @@ export default function ChefDashboard() {
                           <Eye className="cd-recipe-stat-icon" />
                           {(recipe.views || 0).toLocaleString()}
                         </span>
-                        <span className="cd-recipe-stat">
-                          <Heart className="cd-recipe-stat-icon" />
-                          {recipe.likes || 0}
-                        </span>
+
                         <span className="cd-recipe-stat">
                           <MessageSquare className="cd-recipe-stat-icon" />
                           {recipe.reviews || 0}
@@ -721,8 +651,10 @@ export default function ChefDashboard() {
                   type="button"
                   className="cd-btn-primary"
                   onClick={() => handleSaveRecipe("Published")}
-                  disabled={!canPublish}
+                  disabled={!canPublish || !isVerified}
+                  title={!isVerified ? 'Publishing is locked until your identity is verified' : ''}
                 >
+                  {!isVerified && <Lock size={14} />}
                   Publish
                 </button>
               </div>
@@ -1223,9 +1155,11 @@ export default function ChefDashboard() {
                       type="button"
                       className="cd-btn-primary cd-btn-lg"
                       onClick={() => handleSaveRecipe("Published")}
-                      disabled={!canPublish}
+                      disabled={!canPublish || !isVerified}
+                      title={!isVerified ? 'Publishing is locked until your identity is verified' : ''}
                     >
-                      Publish Recipe
+                      {!isVerified && <Lock size={14} />}
+                      {isVerified ? 'Publish Recipe' : 'Publish Locked'}
                     </button>
                   </div>
                 </div>
@@ -1296,13 +1230,15 @@ export default function ChefDashboard() {
                   </div>
                   <button
                     type="button"
-                    className={`cd-btn-publish-full ${canPublish ? "" : "disabled"}`}
+                    className={`cd-btn-publish-full ${canPublish && isVerified ? "" : "disabled"}`}
                     onClick={() =>
-                      canPublish && handleSaveRecipe("Published")
+                      canPublish && isVerified && handleSaveRecipe("Published")
                     }
-                    disabled={!canPublish}
+                    disabled={!canPublish || !isVerified}
+                    title={!isVerified ? 'Publishing is locked until your identity is verified' : ''}
                   >
-                    Publish Recipe
+                    {!isVerified && <Lock size={14} />}
+                    {isVerified ? 'Publish Recipe' : 'Publish Locked'}
                   </button>
                 </div>
               </div>
@@ -1347,13 +1283,13 @@ export default function ChefDashboard() {
               </div>
               <div className="cd-stat-card">
                 <div className="cd-stat-icon-wrap cd-stat-rose">
-                  <Heart className="cd-stat-icon" />
+                  <MessageSquare className="cd-stat-icon" />
                 </div>
                 <div className="cd-stat-data">
                   <span className="cd-stat-num">
-                    {totalLikes.toLocaleString()}
+                    {recipes.reduce((s, r) => s + (r.reviews || 0), 0)}
                   </span>
-                  <span className="cd-stat-label">Total Likes</span>
+                  <span className="cd-stat-label">Reviews</span>
                 </div>
               </div>
               <div className="cd-stat-card">
@@ -1382,7 +1318,7 @@ export default function ChefDashboard() {
                         <th>Recipe</th>
                         <th>Status</th>
                         <th>Views</th>
-                        <th>Likes</th>
+
                         <th>Reviews</th>
                       </tr>
                     </thead>
@@ -1398,7 +1334,7 @@ export default function ChefDashboard() {
                             </span>
                           </td>
                           <td>{(r.views || 0).toLocaleString()}</td>
-                          <td>{r.likes || 0}</td>
+
                           <td>{r.reviews || 0}</td>
                         </tr>
                       ))}
@@ -1463,12 +1399,12 @@ export default function ChefDashboard() {
                     <span className="cd-pp-stat-label">Recipes</span>
                   </div>
                   <div className="cd-pp-stat">
-                    <span className="cd-pp-stat-num">{totalLikes}</span>
-                    <span className="cd-pp-stat-label">Likes</span>
+                    <span className="cd-pp-stat-num">{recipes.reduce((s, r) => s + (r.reviews || 0), 0)}</span>
+                    <span className="cd-pp-stat-label">Reviews</span>
                   </div>
                   <div className="cd-pp-stat">
-                    <span className="cd-pp-stat-num">856</span>
-                    <span className="cd-pp-stat-label">Followers</span>
+                    <span className="cd-pp-stat-num">{totalViews.toLocaleString()}</span>
+                    <span className="cd-pp-stat-label">Views</span>
                   </div>
                 </div>
                 {(profile.instagram ||

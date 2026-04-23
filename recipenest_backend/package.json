@@ -1,12 +1,14 @@
 {
   "name": "recipenest_backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "RecipeNest Backend API — Express + MongoDB",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node src/seed.js"
   },
-  "keywords": [],
+  "keywords": ["recipe", "api", "mongodb"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",

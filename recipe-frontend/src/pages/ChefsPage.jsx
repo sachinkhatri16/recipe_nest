@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -6,107 +6,50 @@ import {
   BookOpen,
   ChefHat,
   Search,
-  Star,
   X,
-  UserPlus,
-  UserCheck,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
+import { chefAPI } from "../services/api";
 import "./ChefsPage.css";
-
-/* ------------------------------------------------------------------ */
-/*  Data — Nepal & India only                                          */
-/* ------------------------------------------------------------------ */
-const CHEFS = [
-  {
-    id: "asha-tamang",
-    name: "Asha Tamang",
-    specialty: "Nepali Home Cooking",
-    region: "Kathmandu, Nepal",
-    bio: "Third-generation cook preserving the recipes her grandmother taught in a wood-fire kitchen in Patan. Specialises in traditional Newari feasts and everyday dal-bhat preparations.",
-    recipeCount: 42,
-    rating: 4.9,
-    yearsExp: 18,
-    initials: "AT",
-    verified: true,
-    image: "/images/recipes/momo.png",
-    featured: [
-      { name: "Momo", time: "40m", image: "/images/recipes/momo.png" },
-      { name: "Sel Roti", time: "25m", image: "/images/recipes/sel-roti.png" },
-      { name: "Dal Bhat", time: "35m", image: "/images/recipes/dal-bhat.png" },
-    ],
-  },
-  {
-    id: "priya-sharma",
-    name: "Priya Sharma",
-    specialty: "North Indian Classics",
-    region: "Delhi, India",
-    bio: "Trained at IHM Delhi and ran a home kitchen for ten years before sharing recipes online. Known for rich gravies, slow-cooked biryanis, and buttery naan traditions.",
-    recipeCount: 67,
-    rating: 5.0,
-    yearsExp: 22,
-    initials: "PS",
-    verified: true,
-    image: "/images/recipes/butter-chicken.png",
-    featured: [
-      { name: "Butter Chicken", time: "50m", image: "/images/recipes/butter-chicken.png" },
-      { name: "Hyderabadi Biryani", time: "75m", image: "/images/recipes/biryani.png" },
-    ],
-  },
-  {
-    id: "arjun-nair",
-    name: "Arjun Nair",
-    specialty: "South Indian & Vegetarian",
-    region: "Kochi, India",
-    bio: "Plant-forward cooking rooted in Kerala tradition. Arjun believes every meal should start with freshly ground coconut and curry leaves from the backyard.",
-    recipeCount: 38,
-    rating: 4.8,
-    yearsExp: 14,
-    initials: "AN",
-    verified: true,
-    image: "/images/recipes/masala-dosa.png",
-    featured: [
-      { name: "Masala Dosa", time: "30m", image: "/images/recipes/masala-dosa.png" },
-      { name: "Palak Paneer", time: "35m", image: "/images/recipes/palak-paneer.png" },
-    ],
-  },
-  {
-    id: "rajan-shrestha",
-    name: "Rajan Shrestha",
-    specialty: "Nepali Street & Comfort Food",
-    region: "Pokhara, Nepal",
-    bio: "From the lakeside stalls of Pokhara to your kitchen. Rajan documents the warming soups, thukpas, and snacks of highland Nepal with unfussy technique.",
-    recipeCount: 31,
-    rating: 4.7,
-    yearsExp: 12,
-    initials: "RS",
-    verified: true,
-    image: "/images/recipes/thukpa.png",
-    featured: [
-      { name: "Dal Bhat", time: "35m", image: "/images/recipes/dal-bhat.png" },
-      { name: "Thukpa", time: "45m", image: "/images/recipes/thukpa.png" },
-    ],
-  },
-];
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 export default function ChefsPage() {
+  const [chefs, setChefs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const { user, toggleSaveChef } = useAuth();
 
+  useEffect(() => {
+    chefAPI
+      .getAll()
+      .then((data) => setChefs(data))
+      .catch((err) => console.error("Failed to load chefs:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const getInitials = (name) =>
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return CHEFS;
+    if (!query.trim()) return chefs;
     const q = query.toLowerCase();
-    return CHEFS.filter(
+    return chefs.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        c.specialty.toLowerCase().includes(q) ||
-        c.region.toLowerCase().includes(q)
+        (c.profile?.specialty || "").toLowerCase().includes(q) ||
+        (c.profile?.location || "").toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, chefs]);
 
   return (
     <div className="cp-root">
@@ -171,7 +114,11 @@ export default function ChefsPage() {
           </div>
 
           {/* Chef cards */}
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="cp-empty">
+              <p className="cp-empty-title">Loading chefs...</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="cp-empty">
               <p className="cp-empty-title">No chefs match your search</p>
               <p className="cp-empty-sub">
@@ -188,14 +135,14 @@ export default function ChefsPage() {
           ) : (
             <div className="cp-grid">
               {filtered.map((chef) => {
-                const isFollowed = user?.savedChefs?.includes(chef.id);
+                const isSaved = user?.savedChefs?.includes(chef._id);
                 return (
-                  <article key={chef.id} className="cp-card">
+                  <article key={chef._id} className="cp-card">
                   {/* Top band -- avatar / identity */}
                   <div className="cp-card-top">
                     <div className="cp-card-avatar-wrap">
-                      <div className="cp-card-avatar">{chef.initials}</div>
-                      {chef.verified && (
+                      <div className="cp-card-avatar">{getInitials(chef.name)}</div>
+                      {chef.verificationStatus === "verified" && (
                         <span className="cp-card-badge">
                           <BadgeCheck className="cp-card-badge-icon" />
                         </span>
@@ -204,29 +151,27 @@ export default function ChefsPage() {
 
                     <div className="cp-card-identity">
                       <h2 className="cp-card-name">{chef.name}</h2>
-                      <p className="cp-card-specialty">{chef.specialty}</p>
-                      <p className="cp-card-region">{chef.region}</p>
+                      <p className="cp-card-specialty">{chef.profile?.specialty || "Home Chef"}</p>
+                      <p className="cp-card-region">{chef.profile?.location || ""}</p>
                     </div>
                   </div>
 
                   {/* Bio */}
-                  <p className="cp-card-bio">{chef.bio}</p>
+                  <p className="cp-card-bio">{chef.profile?.bio || ""}</p>
 
                   {/* Stats */}
                   <div className="cp-card-stats">
                     <div className="cp-card-stat">
                       <BookOpen className="cp-card-stat-icon" />
-                      <span className="cp-card-stat-num">{chef.recipeCount}</span>
+                      <span className="cp-card-stat-num">{chef.recipeCount || 0}</span>
                       <span className="cp-card-stat-label">Recipes</span>
                     </div>
                     <div className="cp-card-stat">
                       <ChefHat className="cp-card-stat-icon" />
-                      <span className="cp-card-stat-num">{chef.yearsExp}</span>
-                      <span className="cp-card-stat-label">Years</span>
+                      <span className="cp-card-stat-num">{chef.totalViews || 0}</span>
+                      <span className="cp-card-stat-label">Views</span>
                     </div>
                   </div>
-
-
 
                   {/* CTA */}
                   <div className="cp-card-actions">
@@ -236,18 +181,18 @@ export default function ChefsPage() {
                     </Link>
                     {user && (
                       <button 
-                        className={`cp-card-follow-btn ${isFollowed ? 'is-followed' : ''}`}
-                        onClick={() => toggleSaveChef(chef.id)}
+                        className={`cp-card-follow-btn ${isSaved ? 'is-followed' : ''}`}
+                        onClick={() => toggleSaveChef(chef._id)}
                       >
-                        {isFollowed ? (
+                        {isSaved ? (
                           <>
-                            <UserCheck className="w-4 h-4" />
-                            Following
+                            <BookmarkCheck className="w-4 h-4" />
+                            Saved
                           </>
                         ) : (
                           <>
-                            <UserPlus className="w-4 h-4" />
-                            Follow
+                            <Bookmark className="w-4 h-4" />
+                            Save Chef
                           </>
                         )}
                       </button>

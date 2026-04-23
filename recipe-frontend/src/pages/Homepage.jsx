@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -6,82 +7,51 @@ import {
   Star,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
+import { recipeAPI, chefAPI } from "../services/api";
 import "./Homepage.css";
-
-/* ------------------------------------------------------------------ */
-/*  Data — Nepal & India only                                          */
-/* ------------------------------------------------------------------ */
-const RECIPES = [
-  {
-    name: "Momo",
-    chef: "Asha Tamang",
-    origin: "Nepali",
-    time: "40m",
-    level: "Medium",
-    rating: "4.9",
-    image: "/images/recipes/momo.png",
-    blurb: "Steamed dumplings filled with spiced meat, served with fiery tomato achar.",
-  },
-  {
-    name: "Butter Chicken",
-    chef: "Priya Sharma",
-    origin: "Indian",
-    time: "50m",
-    level: "Medium",
-    rating: "4.9",
-    image: "/images/recipes/butter-chicken.png",
-    blurb: "Tender chicken in a rich, creamy tomato-cashew gravy with warm spice.",
-  },
-  {
-    name: "Dal Bhat",
-    chef: "Rajan Shrestha",
-    origin: "Nepali",
-    time: "35m",
-    level: "Easy",
-    rating: "4.8",
-    image: "/images/recipes/dal-bhat.png",
-    blurb: "The daily staple -- lentils, rice, tarkari, and pickles on a brass thali.",
-  },
-  {
-    name: "Masala Dosa",
-    chef: "Arjun Nair",
-    origin: "Indian",
-    time: "30m",
-    level: "Medium",
-    rating: "4.8",
-    image: "/images/recipes/masala-dosa.png",
-    blurb: "Crispy fermented crepe filled with spiced potato, served with sambar.",
-  },
-];
-
-const CHEFS = [
-  {
-    name: "Asha Tamang",
-    specialty: "Nepali Home Cooking",
-    recipeCount: 42,
-    initials: "AT",
-    verified: true,
-  },
-  {
-    name: "Priya Sharma",
-    specialty: "North Indian Classics",
-    recipeCount: 67,
-    initials: "PS",
-    verified: true,
-  },
-  {
-    name: "Arjun Nair",
-    specialty: "South Indian & Vegetarian",
-    recipeCount: 38,
-    initials: "AN",
-    verified: true,
-  },
-];
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 export default function Homepage() {
+  const [recipes, setRecipes] = useState([]);
+  const [chefs, setChefs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [recipeData, chefData] = await Promise.all([
+          recipeAPI.getAll(),
+          chefAPI.getAll(),
+        ]);
+        const recipeList = recipeData.recipes || recipeData;
+        setRecipes((Array.isArray(recipeList) ? recipeList : []).slice(0, 4));
+        setChefs((Array.isArray(chefData) ? chefData : []).slice(0, 3));
+      } catch (err) {
+        console.error("Failed to load homepage data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const getInitials = (name) => {
+    return name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const getAvgRating = (recipe) => {
+    if (!recipe.reviews || recipe.reviews.length === 0) return "New";
+    const avg = recipe.reviews.reduce((s, r) => s + r.rating, 0) / recipe.reviews.length;
+    return avg.toFixed(1);
+  };
+
   return (
     <div className="hp-root">
       <Navbar activeItem="Home" />
@@ -131,38 +101,44 @@ export default function Homepage() {
               </Link>
             </div>
 
-            <div className="hp-recipe-grid">
-              {RECIPES.map((r) => (
-                <article key={r.name} className="hp-recipe-card">
-                  <div className="hp-recipe-img-wrap">
-                    <img
-                      src={r.image}
-                      alt={r.name}
-                      className="hp-recipe-img"
-                      loading="lazy"
-                    />
-                    <span className="hp-recipe-origin">{r.origin}</span>
-                  </div>
+            {loading ? (
+              <div className="hp-loading">Loading recipes...</div>
+            ) : (
+              <div className="hp-recipe-grid">
+                {recipes.map((r) => (
+                  <Link to={`/recipes/${r._id}`} key={r._id} className="hp-recipe-card-link">
+                    <article className="hp-recipe-card">
+                      <div className="hp-recipe-img-wrap">
+                        <img
+                          src={r.coverImage || "/images/recipes/momo.png"}
+                          alt={r.title}
+                          className="hp-recipe-img"
+                          loading="lazy"
+                        />
+                        <span className="hp-recipe-origin">{r.category}</span>
+                      </div>
 
-                  <div className="hp-recipe-body">
-                    <p className="hp-recipe-chef">{r.chef}</p>
-                    <h3 className="hp-recipe-name">{r.name}</h3>
-                    <p className="hp-recipe-blurb">{r.blurb}</p>
+                      <div className="hp-recipe-body">
+                        <p className="hp-recipe-chef">{r.chef?.name || "Chef"}</p>
+                        <h3 className="hp-recipe-name">{r.title}</h3>
+                        <p className="hp-recipe-blurb">{r.description}</p>
 
-                    <div className="hp-recipe-foot">
-                      <span className="hp-recipe-rating">
-                        <Star className="hp-recipe-star" />
-                        {r.rating}
-                      </span>
-                      <span className="hp-recipe-time">
-                        <Clock3 className="hp-recipe-clock" />
-                        {r.time}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+                        <div className="hp-recipe-foot">
+                          <span className="hp-recipe-rating">
+                            <Star className="hp-recipe-star" />
+                            {getAvgRating(r)}
+                          </span>
+                          <span className="hp-recipe-time">
+                            <Clock3 className="hp-recipe-clock" />
+                            {(parseInt(r.prepTime || 0) + parseInt(r.cookTime || 0))}m
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -180,32 +156,36 @@ export default function Homepage() {
               </div>
             </div>
 
-            <div className="hp-chef-grid">
-              {CHEFS.map((c) => (
-                <article key={c.name} className="hp-chef-card">
-                  <div className="hp-chef-avatar-wrap">
-                    <div className="hp-chef-avatar">{c.initials}</div>
-                    {c.verified && (
-                      <span className="hp-chef-badge">
-                        <BadgeCheck className="hp-chef-badge-icon" />
-                      </span>
-                    )}
-                  </div>
+            {loading ? (
+              <div className="hp-loading hp-loading-light">Loading chefs...</div>
+            ) : (
+              <div className="hp-chef-grid">
+                {chefs.map((c) => (
+                  <article key={c._id} className="hp-chef-card">
+                    <div className="hp-chef-avatar-wrap">
+                      <div className="hp-chef-avatar">{getInitials(c.name)}</div>
+                      {c.verificationStatus === "verified" && (
+                        <span className="hp-chef-badge">
+                          <BadgeCheck className="hp-chef-badge-icon" />
+                        </span>
+                      )}
+                    </div>
 
-                  <h3 className="hp-chef-name">{c.name}</h3>
-                  <p className="hp-chef-specialty">{c.specialty}</p>
+                    <h3 className="hp-chef-name">{c.name}</h3>
+                    <p className="hp-chef-specialty">{c.profile?.specialty || "Home Chef"}</p>
 
-                  <div className="hp-chef-stat">
-                    <p className="hp-chef-count">{c.recipeCount}</p>
-                    <p className="hp-chef-count-label">Recipes</p>
-                  </div>
+                    <div className="hp-chef-stat">
+                      <p className="hp-chef-count">{c.recipeCount || 0}</p>
+                      <p className="hp-chef-count-label">Recipes</p>
+                    </div>
 
-                  <Link to="/recipes" className="hp-chef-link">
-                    View Profile
-                  </Link>
-                </article>
-              ))}
-            </div>
+                    <Link to={`/chefs`} className="hp-chef-link">
+                      View Profile
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </main>

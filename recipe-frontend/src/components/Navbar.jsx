@@ -61,11 +61,11 @@ export default function Navbar({ activeItem = "Home" }) {
             {isAuthenticated ? (
               <div className="flex items-center gap-4">
                 <Link 
-                  to={user?.role === 'chef' ? "/chef-dashboard" : "/profile"} 
+                  to={user?.role === 'admin' ? "/admin-dashboard" : user?.role === 'chef' ? "/chef-dashboard" : "/profile"} 
                   className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-emerald-700 ${activeItem === 'Profile' || activeItem === 'Dashboard' ? 'text-emerald-700' : 'text-slate-700'}`}
                 >
                   <User className="h-4 w-4 text-emerald-600" />
-                  {user?.role === 'chef' ? 'Dashboard' : user?.name}
+                  {user?.role === 'admin' ? 'Admin' : user?.role === 'chef' ? 'Dashboard' : user?.name}
                 </Link>
                 <button
                   onClick={logout}
@@ -130,12 +130,12 @@ export default function Navbar({ activeItem = "Home" }) {
                 {isAuthenticated ? (
                   <>
                     <Link
-                      to={user?.role === 'chef' ? "/chef-dashboard" : "/profile"}
+                      to={user?.role === 'admin' ? "/admin-dashboard" : user?.role === 'chef' ? "/chef-dashboard" : "/profile"}
                       className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-base font-medium mb-2 ${activeItem === 'Profile' || activeItem === 'Dashboard' ? 'text-emerald-700 bg-emerald-50' : 'text-slate-700 hover:bg-slate-50'}`}
                       onClick={() => setIsMenuOpen(false)}
                     >
                        <User className="h-4 w-4" />
-                      {user?.role === 'chef' ? 'Dashboard' : user?.name}
+                      {user?.role === 'admin' ? 'Admin Panel' : user?.role === 'chef' ? 'Dashboard' : user?.name}
                     </Link>
                     <button
                       onClick={() => {

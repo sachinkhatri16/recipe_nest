@@ -3,111 +3,10 @@ import { Link } from "react-router-dom";
 import { Clock3, Search, Star, X, SlidersHorizontal, ChevronDown, Heart } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
+import { recipeAPI } from "../services/api";
 import "./RecipesPage.css";
 
-/* ------------------------------------------------------------------ */
-/*  Nepal & India recipes only                                         */
-/* ------------------------------------------------------------------ */
-const RECIPES = [
-  {
-    id: 1,
-    name: "Momo",
-    description: "Steamed dumplings filled with spiced meat, served with fiery tomato achar.",
-    chef: "Asha Tamang",
-    origin: "Nepali",
-    time: 40,
-    level: "Medium",
-    rating: 4.9,
-    reviews: 214,
-    image: "/images/recipes/momo.png",
-  },
-  {
-    id: 2,
-    name: "Dal Bhat",
-    description: "The daily staple -- lentils, rice, tarkari, and pickles on a brass thali.",
-    chef: "Rajan Shrestha",
-    origin: "Nepali",
-    time: 35,
-    level: "Easy",
-    rating: 4.8,
-    reviews: 189,
-    image: "/images/recipes/dal-bhat.png",
-  },
-  {
-    id: 3,
-    name: "Sel Roti",
-    description: "Crispy ring-shaped rice bread, deep-fried for festivals and mornings.",
-    chef: "Asha Tamang",
-    origin: "Nepali",
-    time: 25,
-    level: "Easy",
-    rating: 4.6,
-    reviews: 97,
-    image: "/images/recipes/sel-roti.png",
-  },
-  {
-    id: 4,
-    name: "Thukpa",
-    description: "Warming noodle soup with vegetables and tender meat, highland comfort food.",
-    chef: "Rajan Shrestha",
-    origin: "Nepali",
-    time: 45,
-    level: "Easy",
-    rating: 4.7,
-    reviews: 132,
-    image: "/images/recipes/thukpa.png",
-  },
-  {
-    id: 5,
-    name: "Butter Chicken",
-    description: "Tender chicken in a rich, creamy tomato-cashew gravy with warm spice.",
-    chef: "Priya Sharma",
-    origin: "Indian",
-    time: 50,
-    level: "Medium",
-    rating: 4.9,
-    reviews: 301,
-    image: "/images/recipes/butter-chicken.png",
-  },
-  {
-    id: 6,
-    name: "Masala Dosa",
-    description: "Crispy fermented crepe filled with spiced potato, served with sambar and chutney.",
-    chef: "Arjun Nair",
-    origin: "Indian",
-    time: 30,
-    level: "Medium",
-    rating: 4.8,
-    reviews: 178,
-    image: "/images/recipes/masala-dosa.png",
-  },
-  {
-    id: 7,
-    name: "Hyderabadi Biryani",
-    description: "Layered saffron rice and slow-cooked meat sealed in dum, fragrant and bold.",
-    chef: "Priya Sharma",
-    origin: "Indian",
-    time: 75,
-    level: "Hard",
-    rating: 5.0,
-    reviews: 256,
-    image: "/images/recipes/biryani.png",
-  },
-  {
-    id: 8,
-    name: "Palak Paneer",
-    description: "Soft paneer in a velvety spinach gravy, earthy and nourishing.",
-    chef: "Arjun Nair",
-    origin: "Indian",
-    time: 35,
-    level: "Easy",
-    rating: 4.7,
-    reviews: 144,
-    image: "/images/recipes/palak-paneer.png",
-  },
-];
-
-const ORIGINS = ["All", "Nepali", "Indian"];
+const ORIGINS = ["All", "Nepali", "Indian", "Thai"];
 const LEVELS = ["All", "Easy", "Medium", "Hard"];
 const TIMES = [
   { label: "Any", value: null },
@@ -178,7 +77,9 @@ function FilterDropdown({ label, options, value, onChange, icon }) {
 /* ------------------------------------------------------------------ */
 function RecipeCard({ recipe }) {
   const { user, toggleSaveRecipe } = useAuth();
-  const isSaved = user?.savedRecipes?.includes(recipe.id);
+  const isSaved = user?.savedRecipes?.includes(recipe._id);
+
+  const totalTime = parseInt(recipe.prepTime || 0) + parseInt(recipe.cookTime || 0);
 
   const levelClass =
     recipe.level === "Easy"
@@ -187,22 +88,26 @@ function RecipeCard({ recipe }) {
         ? "rp-level-medium"
         : "rp-level-hard";
 
+  const avgRating = recipe.reviews && recipe.reviews.length > 0
+    ? (recipe.reviews.reduce((s, r) => s + r.rating, 0) / recipe.reviews.length).toFixed(1)
+    : null;
+
   return (
     <article className="rp-card">
       <div className="rp-card-img-wrap">
-        <Link to={`/recipes/${recipe.id}`} className="rp-card-img-link-full">
+        <Link to={`/recipes/${recipe._id}`} className="rp-card-img-link-full">
           <img
-            src={recipe.image}
-            alt={recipe.name}
+            src={recipe.coverImage || "/images/recipes/momo.png"}
+            alt={recipe.title}
             className="rp-card-img"
             loading="lazy"
           />
         </Link>
-        <span className="rp-card-origin">{recipe.origin}</span>
+        <span className="rp-card-origin">{recipe.category}</span>
         {user && (
           <button 
             className={`rp-card-save-btn ${isSaved ? 'is-saved' : ''}`}
-            onClick={() => toggleSaveRecipe(recipe.id)}
+            onClick={() => toggleSaveRecipe(recipe._id)}
             aria-label={isSaved ? "Unsave recipe" : "Save recipe"}
           >
             <Heart className={`rp-card-save-icon ${isSaved ? 'fill-current' : ''}`} />
@@ -211,8 +116,8 @@ function RecipeCard({ recipe }) {
       </div>
 
       <div className="rp-card-body">
-        <Link to={`/recipes/${recipe.id}`} className="rp-card-title-link">
-          <h3 className="rp-card-title">{recipe.name}</h3>
+        <Link to={`/recipes/${recipe._id}`} className="rp-card-title-link">
+          <h3 className="rp-card-title">{recipe.title}</h3>
         </Link>
         <p className="rp-card-desc">{recipe.description}</p>
 
@@ -220,14 +125,14 @@ function RecipeCard({ recipe }) {
           <div className="rp-card-meta">
             <span className="rp-card-time">
               <Clock3 className="rp-card-time-icon" />
-              {recipe.time}m
+              {totalTime}m
             </span>
             <span className={`rp-card-level ${levelClass}`}>{recipe.level}</span>
           </div>
 
           <div className="rp-card-rating">
             <Star className="rp-card-star" />
-            <span className="rp-card-rating-num">{recipe.rating}</span>
+            <span className="rp-card-rating-num">{avgRating || "New"}</span>
           </div>
         </div>
       </div>
@@ -239,10 +144,20 @@ function RecipeCard({ recipe }) {
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 export default function RecipesPage() {
+  const [allRecipes, setAllRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [origin, setOrigin] = useState(null);
   const [level, setLevel] = useState(null);
   const [maxTime, setMaxTime] = useState(null);
+
+  useEffect(() => {
+    recipeAPI
+      .getAll()
+      .then((data) => setAllRecipes(data.recipes || data))
+      .catch((err) => console.error("Failed to load recipes:", err))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleTimeChange = useCallback((val) => {
     if (!val) {
@@ -260,21 +175,26 @@ export default function RecipesPage() {
   }, [maxTime]);
 
   const filtered = useMemo(() => {
-    let out = RECIPES;
+    let out = allRecipes;
     if (query.trim()) {
       const q = query.toLowerCase();
       out = out.filter(
         (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.description.toLowerCase().includes(q) ||
-          r.chef.toLowerCase().includes(q)
+          r.title.toLowerCase().includes(q) ||
+          (r.description || "").toLowerCase().includes(q) ||
+          (r.chef?.name || "").toLowerCase().includes(q)
       );
     }
-    if (origin) out = out.filter((r) => r.origin === origin);
+    if (origin) out = out.filter((r) => r.category === origin);
     if (level) out = out.filter((r) => r.level === level);
-    if (maxTime) out = out.filter((r) => r.time <= maxTime);
+    if (maxTime) {
+      out = out.filter((r) => {
+        const total = parseInt(r.prepTime || 0) + parseInt(r.cookTime || 0);
+        return total <= maxTime;
+      });
+    }
     return out;
-  }, [query, origin, level, maxTime]);
+  }, [query, origin, level, maxTime, allRecipes]);
 
   const hasActiveFilters = origin || level || maxTime;
 
@@ -364,7 +284,11 @@ export default function RecipesPage() {
           </div>
 
           {/* ---- Grid ---- */}
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="rp-empty">
+              <p className="rp-empty-title">Loading recipes...</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="rp-empty">
               <p className="rp-empty-title">No recipes match your filters</p>
               <p className="rp-empty-sub">Try broadening your search or removing filters.</p>
@@ -375,7 +299,7 @@ export default function RecipesPage() {
           ) : (
             <div className="rp-grid">
               {filtered.map((r) => (
-                <RecipeCard key={r.id} recipe={r} />
+                <RecipeCard key={r._id} recipe={r} />
               ))}
             </div>
           )}

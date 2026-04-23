@@ -17,17 +17,17 @@ import "./AuthPage.css";
 export default function AuthPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   
   const activeTab = searchParams.get("tab") === "signup" ? "signup" : "login";
   const setActiveTab = (tab) => {
     setSearchParams({ tab });
+    setError("");
   };
   
   // Login State
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [loginRole, setLoginRole] = useState("foodlover");
   const [showLoginPass, setShowLoginPass] = useState(false);
   
   // Signup State
@@ -37,32 +37,60 @@ export default function AuthPage() {
   const [role, setRole] = useState("foodlover");
   const [showSignupPass, setShowSignupPass] = useState(false);
 
-  const handleLogin = (e) => {
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!loginEmail || !loginPassword) {
-      alert("Please fill in all fields.");
+      setError("Please fill in all fields.");
       return;
     }
-    const extractName = loginEmail.split('@')[0];
-    login({ name: extractName || "User", role: loginRole });
-    if (loginRole === 'chef') {
-      navigate("/chef-dashboard");
-    } else {
-      navigate("/");
+    setError("");
+    setSubmitting(true);
+    try {
+      const user = await login(loginEmail, loginPassword);
+      if (user.role === "admin") {
+        navigate("/admin-dashboard");
+      } else if (user.role === "chef") {
+        if (user.verificationStatus === "verified") {
+          navigate("/chef-dashboard");
+        } else {
+          navigate("/chef-verification");
+        }
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError(err.message || "Login failed. Check your credentials.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     if (!signupName || !signupEmail || !signupPassword) {
-      alert("Please fill in all fields.");
+      setError("Please fill in all fields.");
       return;
     }
-    login({ name: signupName, role });
-    if (role === 'chef') {
-      navigate("/chef-dashboard");
-    } else {
-      navigate("/");
+    if (signupPassword.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    setError("");
+    setSubmitting(true);
+    try {
+      const user = await register({ name: signupName, email: signupEmail, password: signupPassword, role });
+      if (user.role === "chef") {
+        navigate("/chef-verification");
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError(err.message || "Registration failed.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -134,7 +162,7 @@ export default function AuthPage() {
             </h2>
             <p className="auth-form-sub">
               {activeTab === 'login' 
-                ? 'Sign in to access your saved recipes and followed chefs.' 
+                ? 'Sign in to access your saved recipes and saved chefs.' 
                 : 'Start your culinary journey with RecipeNest today.'}
             </p>
           </div>
@@ -165,30 +193,9 @@ export default function AuthPage() {
               className={`auth-form-wrapper ${activeTab === 'login' ? 'active' : ''}`}
               onSubmit={handleLogin}
             >
-              <div className="auth-roles">
-                <button 
-                  type="button"
-                  className={`auth-role-btn ${loginRole === 'foodlover' ? 'active' : ''}`}
-                  onClick={() => setLoginRole('foodlover')}
-                >
-                  <Utensils className="auth-role-icon" />
-                  <div className="auth-role-text">
-                    <span className="auth-role-title">Food Lover</span>
-                    <span className="auth-role-desc">Save and explore recipes</span>
-                  </div>
-                </button>
-                <button 
-                  type="button"
-                  className={`auth-role-btn ${loginRole === 'chef' ? 'active' : ''}`}
-                  onClick={() => setLoginRole('chef')}
-                >
-                  <ChefHat className="auth-role-icon" />
-                  <div className="auth-role-text">
-                    <span className="auth-role-title">Home Chef</span>
-                    <span className="auth-role-desc">Share your recipes</span>
-                  </div>
-                </button>
-              </div>
+              {error && activeTab === 'login' && (
+                <div className="auth-error">{error}</div>
+              )}
 
               <div className="auth-input-group">
                 <label className="auth-label">Email Address</label>
@@ -226,9 +233,9 @@ export default function AuthPage() {
                 </div>
               </div>
               
-              <button type="submit" className="auth-submit">
-                Sign In
-                <ArrowRight className="auth-submit-arrow" />
+              <button type="submit" className="auth-submit" disabled={submitting}>
+                {submitting ? "Signing in..." : "Sign In"}
+                {!submitting && <ArrowRight className="auth-submit-arrow" />}
               </button>
 
               <p className="auth-switch-text">
@@ -244,6 +251,9 @@ export default function AuthPage() {
               className={`auth-form-wrapper ${activeTab === 'signup' ? 'active' : ''}`}
               onSubmit={handleSignup}
             >
+              {error && activeTab === 'signup' && (
+                <div className="auth-error">{error}</div>
+              )}
               <div className="auth-roles">
                 <button 
                   type="button"
@@ -319,9 +329,9 @@ export default function AuthPage() {
                 </div>
               </div>
               
-              <button type="submit" className="auth-submit">
-                Create Account
-                <ArrowRight className="auth-submit-arrow" />
+              <button type="submit" className="auth-submit" disabled={submitting}>
+                {submitting ? "Creating account..." : "Create Account"}
+                {!submitting && <ArrowRight className="auth-submit-arrow" />}
               </button>
 
               <p className="auth-switch-text">
