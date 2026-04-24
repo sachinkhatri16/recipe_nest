@@ -31,21 +31,6 @@ export default function ProfilePage() {
   const [savedChefs, setSavedChefs] = useState([]);
   const [myComments, setMyComments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [becomingChef, setBecomingChef] = useState(false);
-
-  const handleBecomeChef = async () => {
-    if (!window.confirm("Are you sure you want to become a Chef? You will be redirected to your chef dashboard to complete your profile first.")) return;
-    setBecomingChef(true);
-    try {
-      await userAPI.becomeChef();
-      window.location.href = "/chef-dashboard";
-    } catch (err) {
-      console.error("Failed to become chef:", err);
-      alert(err.message || "Failed to become chef");
-    } finally {
-      setBecomingChef(false);
-    }
-  };
 
   useEffect(() => {
     if (!isAuthenticated) {

@@ -1,7 +1,6 @@
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import toast from "react-hot-toast";
 import {
   Shield, Users, BookOpen, BarChart3, LogOut, ChefHat,
   Clock, MessageSquare, TrendingUp,

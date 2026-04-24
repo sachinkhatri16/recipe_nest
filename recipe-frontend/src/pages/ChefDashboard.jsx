@@ -98,7 +98,6 @@ export default function ChefDashboard() {
 
   /* — Recipes state (loaded from API) — */
   const [recipes, setRecipes] = useState([]);
-  const [recipesLoading, setRecipesLoading] = useState(true);
 
   /* — Analytics state — */
   const [analytics, setAnalytics] = useState(null);
@@ -129,8 +128,7 @@ export default function ChefDashboard() {
     recipeAPI
       .getMyRecipes()
       .then((data) => setRecipes(data))
-      .catch((err) => console.error("Failed to load recipes:", err))
-      .finally(() => setRecipesLoading(false));
+      .catch((err) => console.error("Failed to load recipes:", err));
   }, [user]);
 
   /* — Load analytics when tab is active — */

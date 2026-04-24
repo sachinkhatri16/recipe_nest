@@ -8,12 +8,12 @@ function DonutChart({ data, size = 180 }) {
   const total = data.reduce((s, d) => s + d.count, 0);
   if (total === 0) return null;
   const cx = size / 2, cy = size / 2, r = size * 0.35, strokeW = size * 0.12;
-  let angle = -90;
   const colors = ["#10b981","#3b82f6","#f59e0b","#ef4444","#8b5cf6","#64748b"];
+
   const arcs = data.map((d, i) => {
+    const previousSweep = data.slice(0, i).reduce((sum, prev) => sum + (prev.count / total) * 360, 0);
     const sweep = (d.count / total) * 360;
-    const startAngle = angle;
-    angle += sweep;
+    const startAngle = -90 + previousSweep;
     const startRad = (startAngle * Math.PI) / 180;
     const endRad = ((startAngle + sweep) * Math.PI) / 180;
     const x1 = cx + r * Math.cos(startRad), y1 = cy + r * Math.sin(startRad);
