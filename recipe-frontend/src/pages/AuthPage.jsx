@@ -35,6 +35,8 @@ export default function AuthPage() {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [role, setRole] = useState("foodlover");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [signupDob, setSignupDob] = useState("");
   const [showSignupPass, setShowSignupPass] = useState(false);
 
   const [error, setError] = useState("");
@@ -74,10 +76,35 @@ export default function AuthPage() {
       setError("Please fill in all fields.");
       return;
     }
+    
+    if (role === "chef") {
+      if (!confirmPassword || !signupDob) {
+        setError("Please fill in all fields.");
+        return;
+      }
+      if (signupPassword !== confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+      // Validate age >= 18
+      const dobDate = new Date(signupDob);
+      const today = new Date();
+      let age = today.getFullYear() - dobDate.getFullYear();
+      const m = today.getMonth() - dobDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+          age--;
+      }
+      if (age < 18) {
+          setError("You must be at least 18 years old to join as a Chef.");
+          return;
+      }
+    }
+
     if (signupPassword.length < 6) {
       setError("Password must be at least 6 characters.");
       return;
     }
+
     setError("");
     setSubmitting(true);
     try {
@@ -254,6 +281,7 @@ export default function AuthPage() {
               {error && activeTab === 'signup' && (
                 <div className="auth-error">{error}</div>
               )}
+              
               <div className="auth-roles">
                 <button 
                   type="button"
@@ -278,7 +306,6 @@ export default function AuthPage() {
                   </div>
                 </button>
               </div>
-              
               <div className="auth-input-group">
                 <label className="auth-label">Full Name</label>
                 <div className="auth-input-wrapper">
@@ -328,6 +355,37 @@ export default function AuthPage() {
                   </button>
                 </div>
               </div>
+
+              {role === 'chef' && (
+                <>
+                  <div className="auth-input-group">
+                    <label className="auth-label">Confirm Password</label>
+                    <div className="auth-input-wrapper">
+                      <Lock className="auth-input-icon" />
+                      <input 
+                        type={showSignupPass ? "text" : "password"}
+                        className="auth-input" 
+                        placeholder="Confirm your password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="auth-input-group">
+                    <label className="auth-label">Date of Birth</label>
+                    <div className="auth-input-wrapper">
+                      <User className="auth-input-icon" />
+                      <input 
+                        type="date" 
+                        className="auth-input" 
+                        value={signupDob}
+                        onChange={(e) => setSignupDob(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
               
               <button type="submit" className="auth-submit" disabled={submitting}>
                 {submitting ? "Creating account..." : "Create Account"}

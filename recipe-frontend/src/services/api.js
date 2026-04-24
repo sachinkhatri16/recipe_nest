@@ -50,6 +50,8 @@ export const userAPI = {
   toggleSaveChef: (id) => request(`/users/save-chef/${id}`, { method: "POST" }),
   getSavedRecipes: () => request("/users/saved-recipes"),
   getSavedChefs: () => request("/users/saved-chefs"),
+  getMyComments: () => request("/users/my-comments"),
+  becomeChef: () => request("/users/become-chef", { method: "PUT" }),
 };
 
 /* --- Recipes ------------------------------------------ */

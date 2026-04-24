@@ -179,7 +179,7 @@ export default function Homepage() {
                       <p className="hp-chef-count-label">Recipes</p>
                     </div>
 
-                    <Link to={`/chefs`} className="hp-chef-link">
+                    <Link to={`/chefs/${c._id}`} className="hp-chef-link">
                       View Profile
                     </Link>
                   </article>

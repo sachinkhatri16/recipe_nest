@@ -44,8 +44,8 @@ export default function RecipeDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const isRecipeSaved = user?.savedRecipes?.includes(id);
-  const isChefSaved = user?.savedChefs?.includes(recipe?.chef?._id);
+  const isRecipeSaved = user?.savedRecipes?.some(r => (r._id || r) === id);
+  const isChefSaved = user?.savedChefs?.some(c => (c._id || c) === recipe?.chef?._id);
 
   const getInitials = (name) =>
     (name || "")
@@ -67,11 +67,11 @@ export default function RecipeDetailPage() {
     if (!reviewText.trim()) return;
     setSubmittingReview(true);
     try {
-      const updated = await recipeAPI.addReview(id, reviewText);
-      setRecipe(updated);
+      const updatedReviews = await recipeAPI.addReview(id, reviewText);
+      setRecipe(prev => ({ ...prev, reviews: updatedReviews }));
       setReviewText("");
     } catch (err) {
-      console.error("Review failed:", err);
+      console.error("Comment failed:", err);
     } finally {
       setSubmittingReview(false);
     }
@@ -143,7 +143,7 @@ export default function RecipeDetailPage() {
               All Recipes
             </Link>
             
-            {isAuthenticated ? (
+            {isAuthenticated && user?.role === "foodlover" ? (
               <button 
                 className={`rd-save-btn ${isRecipeSaved ? 'saved' : ''}`}
                 onClick={() => toggleSaveRecipe(id)}
@@ -151,12 +151,12 @@ export default function RecipeDetailPage() {
                 <Bookmark className="rd-save-icon" fill={isRecipeSaved ? "currentColor" : "none"} />
                 {isRecipeSaved ? "Saved" : "Save Recipe"}
               </button>
-            ) : (
+            ) : (!isAuthenticated) ? (
               <button className="rd-save-btn disabled" title="Please log in to save recipes">
                 <Bookmark className="rd-save-icon" />
                 Save Recipe
               </button>
-            )}
+            ) : null}
           </div>
 
           <div className="rd-hero-content">
@@ -199,7 +199,7 @@ export default function RecipeDetailPage() {
              <button className={`rd-tab-link ${activeTab === 'chef-tips' ? 'active' : ''}`} onClick={() => setActiveTab('chef-tips')}>Chef's Notes</button>
           )}
           <button className={`rd-tab-link ${activeTab === 'reviews' ? 'active' : ''}`} onClick={() => setActiveTab('reviews')}>
-            Reviews <span className="rd-tab-badge">{recipe.reviews?.length || 0}</span>
+            Comments <span className="rd-tab-badge">{recipe.reviews?.length || 0}</span>
           </button>
         </div>
       </div>
@@ -270,12 +270,12 @@ export default function RecipeDetailPage() {
                 </section>
               )}
 
-              {/* Reviews */}
+              {/* Comments */}
               {activeTab === 'reviews' && (
                 <section id="reviews" className="rd-section">
-                  <h2 className="rd-section-title">Reviews ({recipe.reviews?.length || 0})</h2>
+                  <h2 className="rd-section-title">Comments ({recipe.reviews?.length || 0})</h2>
                 
-                {isAuthenticated ? (
+                {isAuthenticated && user?.role === "foodlover" ? (
                   <form className="rd-review-form" onSubmit={handleSubmitReview}>
                     <textarea 
                       className="rd-review-input" 
@@ -285,16 +285,16 @@ export default function RecipeDetailPage() {
                     />
                     <div className="rd-review-actions">
                       <button type="submit" className="rd-review-submit" disabled={submittingReview}>
-                        {submittingReview ? "Posting..." : "Post Review"}
+                        {submittingReview ? "Posting..." : "Post Comment"}
                       </button>
                     </div>
                   </form>
-                ) : (
+                ) : (!isAuthenticated) ? (
                   <div className="rd-login-prompt">
                     <MessageSquare className="rd-login-icon" />
                     <p>Food lovers must be logged in to share their thoughts.</p>
                   </div>
-                )}
+                ) : null}
                 
                 <div className="rd-reviews-list">
                   {(recipe.reviews || []).map((review, idx) => (
@@ -368,11 +368,11 @@ export default function RecipeDetailPage() {
                   </div>
                 </div>
                 <div className="rd-chef-actions">
-                  <Link to="/chefs" className="rd-chef-link">
+                  <Link to={`/chefs/${recipe.chef?._id}`} className="rd-chef-link">
                     <BookOpen className="rd-chef-link-icon" />
                     View Profile
                   </Link>
-                  {isAuthenticated ? (
+                  {isAuthenticated && user?.role === "foodlover" ? (
                     <button 
                       className={`rd-chef-save-btn ${isChefSaved ? 'saved' : ''}`}
                       onClick={() => toggleSaveChef(chef._id)}
@@ -380,12 +380,12 @@ export default function RecipeDetailPage() {
                       <BookmarkCheck className="rd-chef-link-icon" fill={isChefSaved ? "currentColor" : "none"} />
                       {isChefSaved ? "Saved" : "Save Chef"}
                     </button>
-                  ) : (
+                  ) : (!isAuthenticated) ? (
                     <button className="rd-chef-save-btn disabled" title="Please log in to save chefs">
                       <Bookmark className="rd-chef-link-icon" />
                       Save Chef
                     </button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </aside>

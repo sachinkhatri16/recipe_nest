@@ -135,7 +135,7 @@ export default function ChefsPage() {
           ) : (
             <div className="cp-grid">
               {filtered.map((chef) => {
-                const isSaved = user?.savedChefs?.includes(chef._id);
+                const isSaved = user?.savedChefs?.some(c => (c._id || c) === chef._id);
                 return (
                   <article key={chef._id} className="cp-card">
                   {/* Top band -- avatar / identity */}
@@ -175,7 +175,7 @@ export default function ChefsPage() {
 
                   {/* CTA */}
                   <div className="cp-card-actions">
-                    <Link to="/recipes" className="cp-card-cta">
+                    <Link to={`/chefs/${chef._id}`} className="cp-card-cta">
                       View All Recipes
                       <ArrowRight className="cp-card-cta-icon" />
                     </Link>

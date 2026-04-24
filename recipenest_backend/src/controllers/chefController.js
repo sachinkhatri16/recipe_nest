@@ -106,9 +106,13 @@ exports.submitVerification = async (req, res) => {
       return res.status(400).json({ message: "Verification already pending" });
     }
 
-    const { citizenNumber, specialty, experience } = req.body;
+    const { citizenNumber, specialty, experience, bio } = req.body;
     if (!citizenNumber) {
       return res.status(400).json({ message: "Citizen number is required" });
+    }
+
+    if (!bio || !bio.trim()) {
+      return res.status(400).json({ message: "Bio is required for verification" });
     }
 
     if (!req.file) {
@@ -135,6 +139,11 @@ exports.submitVerification = async (req, res) => {
       experience: experience || "",
       submittedAt: new Date(),
       rejectionReason: "",
+    };
+
+    user.profile = {
+      ...user.profile,
+      bio: bio.trim(),
     };
 
     await user.save();

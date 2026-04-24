@@ -77,7 +77,7 @@ function FilterDropdown({ label, options, value, onChange, icon }) {
 /* ------------------------------------------------------------------ */
 function RecipeCard({ recipe }) {
   const { user, toggleSaveRecipe } = useAuth();
-  const isSaved = user?.savedRecipes?.includes(recipe._id);
+  const isSaved = user?.savedRecipes?.some(r => (r._id || r) === recipe._id);
 
   const totalTime = parseInt(recipe.prepTime || 0) + parseInt(recipe.cookTime || 0);
 

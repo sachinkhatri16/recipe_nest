@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   Shield, Users, BookOpen, BarChart3, LogOut, ChefHat,
-  Home, Settings, Clock, MessageSquare, TrendingUp,
+  Clock, MessageSquare, TrendingUp,
 } from "lucide-react";
 import AdminVerificationHub from "../components/admin/AdminVerificationHub";
 import AdminUserManager from "../components/admin/AdminUserManager";
@@ -78,10 +78,6 @@ export default function AdminDashboard() {
         </div>
 
         <div className="ad-sidebar-bottom">
-          <button className="ad-nav-item ad-nav-settings" onClick={() => setActiveTab("settings")}>
-            <Settings className="ad-nav-icon"/> Settings
-          </button>
-          <Link to="/" className="ad-nav-item ad-nav-home"><Home className="ad-nav-icon"/> Back to Site</Link>
           <button className="ad-nav-item ad-nav-logout" onClick={() => { logout(); navigate("/"); }}>
             <LogOut className="ad-nav-icon"/> Sign Out
           </button>

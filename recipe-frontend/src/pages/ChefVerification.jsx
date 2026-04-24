@@ -15,6 +15,7 @@ export default function ChefVerification() {
   const fileInputRef = useRef(null);
 
   const [citizenNumber, setCitizenNumber] = useState("");
+  const [bio, setBio] = useState(user?.profile?.bio || "");
   const [idPhotoPreview, setIdPhotoPreview] = useState("");
   const [idPhotoName, setIdPhotoName] = useState("");
   const [idPhotoFile, setIdPhotoFile] = useState(null);
@@ -70,8 +71,8 @@ export default function ChefVerification() {
       alert("Please upload an image file (JPG, PNG, WebP).");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File must be under 5MB.");
+    if (file.size > 3 * 1024 * 1024) {
+      alert("File must be under 3MB.");
       return;
     }
     setIdPhotoFile(file);
@@ -83,14 +84,15 @@ export default function ChefVerification() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!citizenNumber.trim() || !idPhotoFile) {
-      alert("Please provide both your citizen number and a photo of your ID.");
+    if (!citizenNumber.trim() || !idPhotoFile || !bio.trim()) {
+      alert("Please provide your citizen number, bio, and a photo of your ID.");
       return;
     }
     setSubmitting(true);
     try {
       const formData = new FormData();
       formData.append("citizenNumber", citizenNumber.trim());
+      formData.append("bio", bio.trim());
       formData.append("idPhoto", idPhotoFile);
 
       const data = await chefAPI.submitVerification(formData);
@@ -233,25 +235,46 @@ export default function ChefVerification() {
                 <div className="cv-section-header">
                   <div className="cv-section-num">1</div>
                   <div>
-                    <h3 className="cv-section-title">Citizen Number</h3>
-                    <p className="cv-section-sub">Enter your government-issued citizen identification number</p>
+                    <h3 className="cv-section-title">Identity & Bio</h3>
+                    <p className="cv-section-sub">Provide your credentials and a brief introduction</p>
                   </div>
                 </div>
-                <div className="cv-field">
+                
+                <div className="cv-form-group">
+                  <label className="cv-label">
+                    Citizen Number <span className="cv-required">*</span>
+                  </label>
                   <div className="cv-input-wrap">
                     <CreditCard className="cv-input-icon" />
                     <input
                       type="text"
                       className="cv-input"
+                      placeholder="Enter your citizen or national ID number"
                       value={citizenNumber}
                       onChange={(e) => setCitizenNumber(e.target.value)}
-                      placeholder="e.g. 12-34-56789-01234"
                       required
                     />
                   </div>
-                  <span className="cv-field-hint">
-                    This number will be securely stored and only used for verification purposes.
-                  </span>
+                </div>
+
+                <div className="cv-form-group">
+                  <label className="cv-label">
+                    Bio <span className="cv-required">*</span>
+                  </label>
+                  <div className="cv-input-wrap align-top">
+                    <textarea
+                      className="cv-input"
+                      placeholder="Tell us about your culinary background and passion for cooking..."
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      required
+                      rows="4"
+                      style={{ paddingTop: '0.75rem' }}
+                    />
+                  </div>
+                  <p className="cv-hint" style={{ marginTop: '0.25rem', fontSize: '0.85rem', color: '#64748b' }}>
+                    Your bio will be displayed on your Chef Profile.
+                  </p>
                 </div>
               </div>
 

@@ -4,8 +4,12 @@ const Recipe = require("../models/Recipe");
 // PUT /api/users/profile
 exports.updateProfile = async (req, res) => {
   try {
-    const { displayName, bio, location, specialty, website, instagram, twitter } = req.body;
+    const { name, displayName, bio, location, specialty, website, instagram, twitter } = req.body;
     const user = await User.findById(req.user._id);
+
+    if (name) {
+      user.name = name;
+    }
 
     user.profile = {
       ...user.profile,
@@ -100,6 +104,31 @@ exports.toggleSaveChef = async (req, res) => {
   }
 };
 
+// PUT /api/users/become-chef
+exports.becomeChef = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (user.role !== "foodlover") {
+      return res.status(400).json({ message: "Only food lovers can become chefs" });
+    }
+    user.role = "chef";
+    user.verificationStatus = "unverified";
+    await user.save();
+    
+    // We can return the updated user (without sensitive info)
+    const updatedUser = user.toObject();
+    delete updatedUser.password;
+    
+    res.json({ message: "Role updated to chef", user: updatedUser });
+  } catch (err) {
+    console.error("BecomeChef error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 // GET /api/users/saved-recipes
 exports.getSavedRecipes = async (req, res) => {
   try {
@@ -127,6 +156,41 @@ exports.getSavedChefs = async (req, res) => {
     res.json(user.savedChefs);
   } catch (err) {
     console.error("GetSavedChefs error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// GET /api/users/my-comments
+exports.getMyComments = async (req, res) => {
+  try {
+    // Find all recipes that have a review by this user
+    const recipes = await Recipe.find({
+      "reviews.user": req.user._id
+    }).select("title coverImage reviews").lean();
+
+    // Extract the comments and add recipe info
+    let userComments = [];
+    recipes.forEach(recipe => {
+      recipe.reviews.forEach(review => {
+        if (review.user.toString() === req.user._id.toString()) {
+          userComments.push({
+            _id: review._id,
+            recipeId: recipe._id,
+            recipeTitle: recipe.title,
+            recipeImage: recipe.coverImage,
+            text: review.text,
+            createdAt: review.createdAt
+          });
+        }
+      });
+    });
+
+    // Sort by latest first
+    userComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json(userComments);
+  } catch (err) {
+    console.error("GetMyComments error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

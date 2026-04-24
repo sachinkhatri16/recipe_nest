@@ -28,7 +28,7 @@ import {
   Shield,
   Lock,
 } from "lucide-react";
-import { recipeAPI, chefAPI } from "../services/api";
+import { recipeAPI, chefAPI, userAPI } from "../services/api";
 import "./ChefDashboard.css";
 
 /* ──────────────────────────────────────────
@@ -71,7 +71,7 @@ const SIDEBAR_TABS = [
    COMPONENT
    ────────────────────────────────────────── */
 export default function ChefDashboard() {
-  const { user, isAuthenticated, loading, logout } = useAuth();
+  const { user, isAuthenticated, loading, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const coverInputRef = useRef(null);
 
@@ -101,6 +101,7 @@ export default function ChefDashboard() {
     twitter: user?.profile?.twitter || "",
   });
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
 
   /* — Auth guard — */
   useEffect(() => {
@@ -302,10 +303,31 @@ export default function ChefDashboard() {
   };
 
   /* — Profile — */
-  const handleSaveProfile = () => {
-    localStorage.setItem(`chef_profile_v2_${user.name}`, JSON.stringify(profile));
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 2000);
+  const handleSaveProfile = async () => {
+    setProfileSaving(true);
+    try {
+      const payload = {
+        name: profile.displayName,
+        bio: profile.bio,
+        location: profile.location,
+        specialty: profile.specialty,
+        website: profile.website,
+        instagram: profile.instagram,
+        twitter: profile.twitter
+      };
+      await userAPI.updateProfile(payload);
+      updateUser({
+        name: profile.displayName,
+        profile: { ...user.profile, ...payload }
+      });
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+    } catch (err) {
+      console.error("Failed to update profile", err);
+      toast.error("Failed to save profile settings");
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   /* ══════════════════════════════════════════
@@ -906,6 +928,10 @@ export default function ChefDashboard() {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
+                          if (file.size > 3 * 1024 * 1024) {
+                            alert("File must be under 3MB.");
+                            return;
+                          }
                           const reader = new FileReader();
                           reader.onload = (ev) => {
                             setNewRecipe({
@@ -1658,10 +1684,17 @@ export default function ChefDashboard() {
                 <div className="cd-form-footer">
                   <button
                     type="button"
-                    className="cd-btn-primary cd-btn-lg"
+                    className={`cd-btn-primary cd-btn-lg ${profileSaved ? "saved" : ""}`}
                     onClick={handleSaveProfile}
+                    disabled={profileSaving}
                   >
-                    <Save size={16} /> Save Profile
+                    {profileSaved ? (
+                      <><CheckCircle2 size={16} /> Saved</>
+                    ) : profileSaving ? (
+                      <><Clock size={16} /> Saving...</>
+                    ) : (
+                      <><Save size={16} /> Save Profile</>
+                    )}
                   </button>
                 </div>
               </div>

@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { 
   Heart, 
-  LogOut, 
   ChevronRight,
   BookOpen,
   Users,
@@ -12,7 +11,8 @@ import {
   ArrowRight,
   BadgeCheck,
   UtensilsCrossed,
-  MessageSquare
+  MessageSquare,
+  ChefHat
 } from "lucide-react";
 import { userAPI } from "../services/api";
 import "./ProfilePage.css";
@@ -20,16 +20,32 @@ import "./ProfilePage.css";
 const TABS = [
   { id: "saved-recipes", label: "Saved Recipes", icon: Heart },
   { id: "saved-chefs", label: "Saved Chefs", icon: Users },
-  { id: "reviews", label: "My Reviews", icon: MessageSquare },
+  { id: "reviews", label: "My Comments", icon: MessageSquare },
 ];
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, logout, toggleSaveRecipe, toggleSaveChef } = useAuth();
+  const { user, isAuthenticated, toggleSaveRecipe, toggleSaveChef } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("saved-recipes");
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [savedChefs, setSavedChefs] = useState([]);
+  const [myComments, setMyComments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [becomingChef, setBecomingChef] = useState(false);
+
+  const handleBecomeChef = async () => {
+    if (!window.confirm("Are you sure you want to become a Chef? You will be redirected to the verification page.")) return;
+    setBecomingChef(true);
+    try {
+      await userAPI.becomeChef();
+      window.location.href = "/chef-verification";
+    } catch (err) {
+      console.error("Failed to become chef:", err);
+      alert(err.message || "Failed to become chef");
+    } finally {
+      setBecomingChef(false);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -41,12 +57,14 @@ export default function ProfilePage() {
     if (!isAuthenticated) return;
     const load = async () => {
       try {
-        const [recipes, chefs] = await Promise.all([
+        const [recipes, chefs, comments] = await Promise.all([
           userAPI.getSavedRecipes(),
           userAPI.getSavedChefs(),
+          userAPI.getMyComments(),
         ]);
         setSavedRecipes(recipes);
         setSavedChefs(chefs);
+        setMyComments(comments);
       } catch (err) {
         console.error("Failed to load profile data:", err);
       } finally {
@@ -88,10 +106,6 @@ export default function ProfilePage() {
                   </span>
                 </div>
               </div>
-              <button onClick={logout} className="prof-logout-btn">
-                <LogOut className="prof-logout-icon" />
-                <span className="prof-logout-text">Sign out</span>
-              </button>
             </div>
 
             {/* Stats strip */}
@@ -256,23 +270,50 @@ export default function ProfilePage() {
               </section>
             )}
 
-            {/* Reviews Tab */}
+            {/* Comments Tab */}
             {activeTab === "reviews" && (
               <section className="prof-section prof-fade-in">
                 <div className="prof-section-header">
                   <div>
-                    <h2 className="prof-section-title">My Reviews</h2>
-                    <p className="prof-section-sub">Reviews you've left on recipes</p>
+                    <h2 className="prof-section-title">My Comments</h2>
+                    <p className="prof-section-sub">Comments you've left on recipes</p>
                   </div>
                 </div>
-                <div className="prof-empty">
-                  <MessageSquare className="prof-empty-icon" />
-                  <h3 className="prof-empty-title">No reviews yet</h3>
-                  <p className="prof-empty-text">Visit a recipe to leave a review and share your experience.</p>
-                  <Link to="/recipes" className="prof-empty-cta">
-                    Browse Recipes <ArrowRight className="prof-cta-arrow" />
-                  </Link>
-                </div>
+                {loading ? (
+                  <div className="prof-empty">
+                    <p className="prof-empty-title">Loading...</p>
+                  </div>
+                ) : myComments.length > 0 ? (
+                  <div className="prof-comments-list" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1.5rem' }}>
+                    {myComments.map(comment => (
+                      <div key={comment._id} className="prof-comment-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', gap: '1.5rem' }}>
+                        <Link to={`/recipes/${comment.recipeId}`} style={{ flexShrink: 0 }}>
+                          <img src={comment.recipeImage || "/images/recipes/momo.png"} alt={comment.recipeTitle} style={{ width: '80px', height: '80px', borderRadius: '0.5rem', objectFit: 'cover' }} />
+                        </Link>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Link to={`/recipes/${comment.recipeId}`} style={{ fontSize: '1.1rem', fontWeight: '600', color: '#0f172a', textDecoration: 'none' }}>
+                              {comment.recipeTitle}
+                            </Link>
+                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                              {new Date(comment.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p style={{ color: '#475569', lineHeight: '1.5' }}>{comment.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="prof-empty">
+                    <MessageSquare className="prof-empty-icon" />
+                    <h3 className="prof-empty-title">No comments yet</h3>
+                    <p className="prof-empty-text">Visit a recipe to leave a comment and share your experience.</p>
+                    <Link to="/recipes" className="prof-empty-cta">
+                      Browse Recipes <ArrowRight className="prof-cta-arrow" />
+                    </Link>
+                  </div>
+                )}
               </section>
             )}
 

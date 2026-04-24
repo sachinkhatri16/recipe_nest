@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Search, CheckCircle2, AlertTriangle, UserCheck, Ban, ChefHat, Utensils, Shield, Mail } from "lucide-react";
+import { Users, Search, CheckCircle2, AlertTriangle, UserCheck, Ban, ChefHat, Utensils, Shield, Mail, Eye } from "lucide-react";
 import { adminAPI } from "../../services/api";
 import toast from "react-hot-toast";
 
@@ -8,6 +8,7 @@ export default function AdminUserManager() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [viewUser, setViewUser] = useState(null);
   const [banModal, setBanModal] = useState(null);
   const [banReason, setBanReason] = useState("");
 
@@ -104,6 +105,9 @@ export default function AdminUserManager() {
                 <td><span className={`ad-pill ${status==="Active"?"ad-pill-green":"ad-pill-red"}`}><span className="ad-pill-icon">{status==="Active"?<CheckCircle2 size={12}/>:<Ban size={12}/>}</span>{status}</span></td>
                 <td>{new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</td>
                 <td><div className="ad-table-actions">
+                  <button className="ad-btn-sm ad-btn-outline" onClick={() => setViewUser(u)} style={{marginRight: 8}}>
+                    <Eye size={14}/> View
+                  </button>
                   {isAdmin ? (
                     <span className="ad-pill ad-pill-violet"><Shield size={12}/> Protected</span>
                   ) : u.status !== "banned" ? (
@@ -137,6 +141,70 @@ export default function AdminUserManager() {
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
               <button className="ad-btn-outline" onClick={() => setBanModal(null)}>Cancel</button>
               <button className="ad-btn-sm ad-btn-sm-reject" style={{padding:"10px 20px"}} disabled={!banReason.trim()} onClick={() => handleBan(banModal._id)}><Ban size={14}/> Confirm Ban</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View User Modal */}
+      {viewUser && (
+        <div className="ad-modal-overlay" onClick={() => setViewUser(null)}>
+          <div className="ad-modal" onClick={e => e.stopPropagation()} style={{maxWidth: 500}}>
+            <h3 style={{margin:"0 0 16px"}}>User Profile</h3>
+            <div style={{display:"flex", alignItems:"center", gap: 16, marginBottom: 20}}>
+              <div className={`ad-user-avatar ${viewUser.role}`} style={{width: 60, height: 60, fontSize: "2rem"}}>
+                {(viewUser.name || "U").charAt(0)}
+              </div>
+              <div>
+                <h4 style={{margin: "0 0 4px", fontSize: "1.1rem"}}>{viewUser.name || "Unknown"}</h4>
+                <p style={{margin: "0 0 4px", color: "#64748b", display: "flex", alignItems: "center", gap: 4}}>
+                  <Mail size={14}/> {viewUser.email}
+                </p>
+                <div style={{display: "flex", gap: 8}}>
+                  <span className={`ad-pill ${viewUser.role==="admin" ? "ad-pill-violet" : viewUser.role==="chef"?"ad-pill-blue":"ad-pill-slate"}`}>
+                    {viewUser.role === "admin" ? "Admin" : viewUser.role === "chef" ? "Chef" : "Food Lover"}
+                  </span>
+                  <span className={`ad-pill ${viewUser.status==="active"?"ad-pill-green":"ad-pill-red"}`}>
+                    {viewUser.status === "active" ? "Active" : "Banned"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{background: "#f8fafc", padding: 16, borderRadius: 8, marginBottom: 20}}>
+              <h5 style={{margin: "0 0 12px", color: "#334155"}}>Profile Details</h5>
+              <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12}}>
+                <div>
+                  <span style={{fontSize: "0.75rem", color: "#64748b", display: "block"}}>Joined Date</span>
+                  <span style={{fontSize: "0.875rem", color: "#334155"}}>{new Date(viewUser.createdAt).toLocaleDateString()}</span>
+                </div>
+                {viewUser.role === "chef" && viewUser.profile && (
+                  <>
+                    <div>
+                      <span style={{fontSize: "0.75rem", color: "#64748b", display: "block"}}>Specialty</span>
+                      <span style={{fontSize: "0.875rem", color: "#334155"}}>{viewUser.profile.specialty || "N/A"}</span>
+                    </div>
+                    <div>
+                      <span style={{fontSize: "0.75rem", color: "#64748b", display: "block"}}>Location</span>
+                      <span style={{fontSize: "0.875rem", color: "#334155"}}>{viewUser.profile.location || "N/A"}</span>
+                    </div>
+                    <div>
+                      <span style={{fontSize: "0.75rem", color: "#64748b", display: "block"}}>Verification</span>
+                      <span style={{fontSize: "0.875rem", color: "#334155"}}>{viewUser.verificationStatus || "N/A"}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              {viewUser.profile?.bio && (
+                <div style={{marginTop: 12}}>
+                  <span style={{fontSize: "0.75rem", color: "#64748b", display: "block"}}>Bio</span>
+                  <p style={{fontSize: "0.875rem", color: "#334155", margin: "4px 0 0"}}>{viewUser.profile.bio}</p>
+                </div>
+              )}
+            </div>
+
+            <div style={{display:"flex",justifyContent:"flex-end"}}>
+              <button className="ad-btn-outline" onClick={() => setViewUser(null)}>Close</button>
             </div>
           </div>
         </div>
