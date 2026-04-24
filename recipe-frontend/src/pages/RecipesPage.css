@@ -518,6 +518,35 @@
 
 .rp-empty-reset:hover { background: #047857; }
 
+/* ---- Load more ---- */
+.rp-load-more-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 2.5rem;
+}
+
+.rp-load-more-btn {
+  padding: 0.65rem 2rem;
+  border-radius: 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #fff;
+  color: #059669;
+  border: 1.5px solid #059669;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.rp-load-more-btn:hover:not(:disabled) {
+  background: #059669;
+  color: #fff;
+}
+
+.rp-load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ---- Footer ---- */
 .rp-footer {
   border-top: 1px solid #e2e8f0;

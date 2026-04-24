@@ -7,7 +7,8 @@ import {
   BookOpen,
   Star,
   LogOut,
-
+  Eye,
+  Users,
   X,
   ChefHat,
   Pencil,
@@ -99,6 +100,10 @@ export default function ChefDashboard() {
   const [recipes, setRecipes] = useState([]);
   const [recipesLoading, setRecipesLoading] = useState(true);
 
+  /* — Analytics state — */
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   /* — New / Edit recipe form — */
   const [newRecipe, setNewRecipe] = useState(JSON.parse(JSON.stringify(EMPTY_RECIPE)));
 
@@ -127,6 +132,17 @@ export default function ChefDashboard() {
       .catch((err) => console.error("Failed to load recipes:", err))
       .finally(() => setRecipesLoading(false));
   }, [user]);
+
+  /* — Load analytics when tab is active — */
+  useEffect(() => {
+    if (activeTab !== "analytics" || !user) return;
+    setAnalyticsLoading(true);
+    chefAPI
+      .getMyAnalytics()
+      .then((data) => setAnalytics(data))
+      .catch((err) => console.error("Failed to load analytics:", err))
+      .finally(() => setAnalyticsLoading(false));
+  }, [activeTab, user]);
 
   useEffect(() => {
     if (!user || hasInitializedProfileRef.current) return;
@@ -1365,81 +1381,152 @@ export default function ChefDashboard() {
               </div>
             </div>
 
-            <div className="cd-stats-grid">
-              <div className="cd-stat-card">
-                <div className="cd-stat-icon-wrap cd-stat-emerald">
-                  <BookOpen className="cd-stat-icon" />
+            {analyticsLoading ? (
+              <div className="cd-analytics-skeleton">
+                <div className="cd-skeleton-grid">
+                  {[0,1,2,3].map((i) => <div key={i} className="cd-skeleton-card" />)}
                 </div>
-                <div className="cd-stat-data">
-                  <span className="cd-stat-num">{recipes.length}</span>
-                  <span className="cd-stat-label">Total Recipes</span>
-                </div>
+                <div className="cd-skeleton-block" />
+                <div className="cd-skeleton-block" />
               </div>
-              <div className="cd-stat-card">
-                <div className="cd-stat-icon-wrap cd-stat-blue">
-                  <Clock className="cd-stat-icon" />
+            ) : (
+              <>
+                {/* ── Overview stats ── */}
+                <div className="cd-stats-grid">
+                  <div className="cd-stat-card">
+                    <div className="cd-stat-icon-wrap cd-stat-emerald">
+                      <BookOpen className="cd-stat-icon" />
+                    </div>
+                    <div className="cd-stat-data">
+                      <span className="cd-stat-num">{analytics?.overview?.totalRecipes ?? recipes.length}</span>
+                      <span className="cd-stat-label">Total Recipes</span>
+                    </div>
+                  </div>
+                  <div className="cd-stat-card">
+                    <div className="cd-stat-icon-wrap cd-stat-blue">
+                      <Eye className="cd-stat-icon" />
+                    </div>
+                    <div className="cd-stat-data">
+                      <span className="cd-stat-num">{analytics?.overview?.totalViews ?? 0}</span>
+                      <span className="cd-stat-label">Total Views</span>
+                    </div>
+                  </div>
+                  <div className="cd-stat-card">
+                    <div className="cd-stat-icon-wrap cd-stat-rose">
+                      <MessageSquare className="cd-stat-icon" />
+                    </div>
+                    <div className="cd-stat-data">
+                      <span className="cd-stat-num">{analytics?.overview?.totalReviews ?? totalReviews}</span>
+                      <span className="cd-stat-label">Reviews</span>
+                    </div>
+                  </div>
+                  <div className="cd-stat-card">
+                    <div className="cd-stat-icon-wrap cd-stat-amber">
+                      <Users className="cd-stat-icon" />
+                    </div>
+                    <div className="cd-stat-data">
+                      <span className="cd-stat-num">{analytics?.overview?.totalProfileSaves ?? 0}</span>
+                      <span className="cd-stat-label">Profile Saves</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="cd-stat-data">
-                  <span className="cd-stat-num">{draftRecipes.length}</span>
-                  <span className="cd-stat-label">Drafts</span>
-                </div>
-              </div>
-              <div className="cd-stat-card">
-                <div className="cd-stat-icon-wrap cd-stat-rose">
-                  <MessageSquare className="cd-stat-icon" />
-                </div>
-                <div className="cd-stat-data">
-                  <span className="cd-stat-num">{totalReviews}</span>
-                  <span className="cd-stat-label">Reviews</span>
-                </div>
-              </div>
-              <div className="cd-stat-card">
-                <div className="cd-stat-icon-wrap cd-stat-amber">
-                  <Star className="cd-stat-icon" />
-                </div>
-                <div className="cd-stat-data">
-                  <span className="cd-stat-num">
-                    {publishedRecipes.length}
-                  </span>
-                  <span className="cd-stat-label">Published</span>
-                </div>
-              </div>
-            </div>
 
-            <div className="cd-card">
-              <div className="cd-card-header">
-                <BarChart3 size={18} className="cd-card-header-icon" />
-                <h3>Recipe Performance</h3>
-              </div>
-              <div className="cd-card-body cd-card-body-flush">
-                <div className="cd-analytics-table-wrap">
-                  <table className="cd-analytics-table">
-                    <thead>
-                      <tr>
-                        <th>Recipe</th>
-                        <th>Status</th>
-                        <th>Reviews</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recipes.map((r) => (
-                        <tr key={r.id}>
-                          <td className="cd-at-name">{r.title}</td>
-                          <td>
-                            <span
-                              className={`cd-status-pill-sm ${r.status === "Published" ? "published" : "draft"}`}
-                            >
-                              {r.status}
-                            </span>
-                          </td>
-                          <td>{getReviewCount(r)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {/* ── Highlight cards ── */}
+                {(analytics?.topByViews || analytics?.topByReviews) && (
+                  <div className="cd-highlight-grid">
+                    {analytics.topByViews && analytics.topByViews.views > 0 && (
+                      <div className="cd-highlight-card">
+                        <div className="cd-highlight-icon cd-highlight-blue">
+                          <Eye size={18} />
+                        </div>
+                        <div className="cd-highlight-body">
+                          <p className="cd-highlight-label">Most Viewed</p>
+                          <p className="cd-highlight-title">{analytics.topByViews.title}</p>
+                          <p className="cd-highlight-num">{analytics.topByViews.views} views</p>
+                        </div>
+                      </div>
+                    )}
+                    {analytics.topByReviews && analytics.topByReviews.reviewCount > 0 && (
+                      <div className="cd-highlight-card">
+                        <div className="cd-highlight-icon cd-highlight-rose">
+                          <MessageSquare size={18} />
+                        </div>
+                        <div className="cd-highlight-body">
+                          <p className="cd-highlight-label">Most Reviewed</p>
+                          <p className="cd-highlight-title">{analytics.topByReviews.title}</p>
+                          <p className="cd-highlight-num">{analytics.topByReviews.reviewCount} reviews</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Recipe Performance table ── */}
+                <div className="cd-card">
+                  <div className="cd-card-header">
+                    <BarChart3 size={18} className="cd-card-header-icon" />
+                    <h3>Recipe Performance</h3>
+                  </div>
+                  <div className="cd-card-body cd-card-body-flush">
+                    <div className="cd-analytics-table-wrap">
+                      <table className="cd-analytics-table">
+                        <thead>
+                          <tr>
+                            <th>Recipe</th>
+                            <th>Status</th>
+                            <th>Views</th>
+                            <th>Reviews</th>
+                            <th>Saves</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(analytics?.recipeStats ?? recipes).map((r) => (
+                            <tr key={r._id || r.id}>
+                              <td className="cd-at-name">{r.title}</td>
+                              <td>
+                                <span className={`cd-status-pill-sm ${r.status === "Published" ? "published" : "draft"}`}>
+                                  {r.status}
+                                </span>
+                              </td>
+                              <td>{r.views ?? 0}</td>
+                              <td>{r.reviewCount ?? getReviewCount(r)}</td>
+                              <td>{r.saves ?? 0}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+
+                {/* ── Category Breakdown ── */}
+                {analytics?.categoryBreakdown && analytics.categoryBreakdown.length > 0 && (
+                  <div className="cd-card">
+                    <div className="cd-card-header">
+                      <Star size={18} className="cd-card-header-icon" />
+                      <h3>Published by Cuisine</h3>
+                    </div>
+                    <div className="cd-card-body">
+                      {(() => {
+                        const maxCount = analytics.categoryBreakdown[0]?.count || 1;
+                        return analytics.categoryBreakdown.map((item) => (
+                          <div key={item.category} className="cd-cat-row">
+                            <span className="cd-cat-label">{item.category}</span>
+                            <div className="cd-cat-bar-track">
+                              <div
+                                className="cd-cat-bar-fill"
+                                style={{ width: `${Math.round((item.count / maxCount) * 100)}%` }}
+                              />
+                            </div>
+                            <span className="cd-cat-count">{item.count}</span>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 

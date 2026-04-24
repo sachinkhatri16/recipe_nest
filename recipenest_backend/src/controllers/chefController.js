@@ -174,3 +174,81 @@ exports.getVerificationStatus = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// GET /api/chefs/chef/analytics — authenticated chef only
+exports.getChefAnalytics = async (req, res) => {
+  try {
+    const chefId = req.user._id;
+
+    const [allRecipes, totalProfileSaves] = await Promise.all([
+      Recipe.find({ chef: chefId }).lean(),
+      User.countDocuments({ savedChefs: chefId }),
+    ]);
+
+    const publishedRecipes = allRecipes.filter((r) => r.status === "Published");
+    const draftRecipes = allRecipes.filter((r) => r.status === "Draft");
+    const totalViews = allRecipes.reduce((sum, r) => sum + (r.views || 0), 0);
+    const totalReviews = allRecipes.reduce((sum, r) => sum + (r.reviews ? r.reviews.length : 0), 0);
+
+    // Per-recipe saves: count users who have saved each recipe
+    const recipeIds = allRecipes.map((r) => r._id);
+    const savesAgg = await User.aggregate([
+      { $match: { savedRecipes: { $in: recipeIds } } },
+      { $unwind: "$savedRecipes" },
+      { $group: { _id: "$savedRecipes", saves: { $sum: 1 } } },
+      { $match: { _id: { $in: recipeIds } } },
+    ]);
+    const savesMap = {};
+    savesAgg.forEach((s) => { savesMap[s._id.toString()] = s.saves; });
+
+    const recipeStats = allRecipes.map((r) => ({
+      _id: r._id,
+      title: r.title,
+      category: r.category,
+      status: r.status,
+      views: r.views || 0,
+      reviewCount: r.reviews ? r.reviews.length : 0,
+      saves: savesMap[r._id.toString()] || 0,
+      createdAt: r.createdAt,
+    }));
+
+    // Top recipe by views
+    const topByViews = recipeStats.reduce(
+      (best, r) => (!best || r.views > best.views ? r : best),
+      null
+    );
+
+    // Top recipe by reviews
+    const topByReviews = recipeStats.reduce(
+      (best, r) => (!best || r.reviewCount > best.reviewCount ? r : best),
+      null
+    );
+
+    // Category breakdown of published recipes
+    const categoryMap = {};
+    publishedRecipes.forEach((r) => {
+      categoryMap[r.category] = (categoryMap[r.category] || 0) + 1;
+    });
+    const categoryBreakdown = Object.entries(categoryMap)
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => b.count - a.count);
+
+    res.json({
+      overview: {
+        totalRecipes: allRecipes.length,
+        publishedRecipes: publishedRecipes.length,
+        draftRecipes: draftRecipes.length,
+        totalViews,
+        totalReviews,
+        totalProfileSaves,
+      },
+      recipeStats,
+      topByViews,
+      topByReviews,
+      categoryBreakdown,
+    });
+  } catch (err) {
+    console.error("GetChefAnalytics error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
