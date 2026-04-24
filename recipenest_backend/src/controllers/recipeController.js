@@ -7,12 +7,16 @@ exports.getRecipes = async (req, res) => {
     const { category, search, ingredient, level, maxTime, sort, page = 1, limit = 20 } = req.query;
     const filter = { status: "Published" };
 
-    if (category && category !== "All") {
+    const VALID_CATEGORIES = ["Nepali","Indian","Chinese","Thai","Italian","Mexican","Japanese","Korean","French","American","Mediterranean","Other"];
+    if (category && category !== "All" && VALID_CATEGORIES.includes(category)) {
       filter.category = category;
     }
 
     if (level && level !== "All") {
-      filter.level = level;
+      const VALID_LEVELS = ["Easy", "Medium", "Hard"];
+      if (VALID_LEVELS.includes(level)) {
+        filter.level = level;
+      }
     }
 
     // Combined text search across title, description, tags, and ingredients
@@ -23,13 +27,15 @@ exports.getRecipes = async (req, res) => {
 
     // Filter by total time (prepTime + cookTime <= maxTime)
     if (maxTime) {
-      const max = parseInt(maxTime);
-      filter.$expr = {
-        $lte: [
-          { $add: [{ $toInt: { $ifNull: ["$prepTime", "0"] } }, { $toInt: { $ifNull: ["$cookTime", "0"] } }] },
-          max,
-        ],
-      };
+      const max = parseInt(maxTime, 10);
+      if (!isNaN(max) && max > 0) {
+        filter.$expr = {
+          $lte: [
+            { $add: [{ $toInt: { $ifNull: ["$prepTime", "0"] } }, { $toInt: { $ifNull: ["$cookTime", "0"] } }] },
+            max,
+          ],
+        };
+      }
     }
 
     let sortOption = { createdAt: -1 };

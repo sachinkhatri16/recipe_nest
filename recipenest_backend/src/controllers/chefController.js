@@ -195,8 +195,8 @@ exports.getChefAnalytics = async (req, res) => {
     const savesAgg = await User.aggregate([
       { $match: { savedRecipes: { $in: recipeIds } } },
       { $unwind: "$savedRecipes" },
-      { $match: { savedRecipes: { $in: recipeIds } } },
       { $group: { _id: "$savedRecipes", saves: { $sum: 1 } } },
+      { $match: { _id: { $in: recipeIds } } },
     ]);
     const savesMap = {};
     savesAgg.forEach((s) => { savesMap[s._id.toString()] = s.saves; });
