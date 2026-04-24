@@ -62,7 +62,7 @@ exports.getChef = async (req, res) => {
       _id: req.params.id,
       role: "chef",
       verificationStatus: "verified",
-    }).select("name profile verificationStatus createdAt");
+    }).select("name email profile verificationStatus createdAt");
 
     if (!chef) {
       return res.status(404).json({ message: "Chef not found" });

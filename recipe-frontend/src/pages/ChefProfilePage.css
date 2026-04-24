@@ -88,6 +88,33 @@
   gap: 0.25rem;
 }
 
+.cpp-personal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.cpp-personal-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: #475569;
+  text-decoration: none;
+  background-color: #f1f5f9;
+  padding: 0.4rem 0.8rem;
+  border-radius: 9999px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+a.cpp-personal-item:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+
 .cpp-bio {
   max-width: 600px;
   color: #475569;

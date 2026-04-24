@@ -7,7 +7,11 @@ import {
   BookOpen,
   Bookmark,
   BookmarkCheck,
-  Star
+  Star,
+  Mail,
+  Globe,
+  Link as LinkIcon,
+  Briefcase
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
@@ -95,6 +99,34 @@ export default function ChefProfilePage() {
                   <MapPin size={16} />
                   {chef.profile.location}
                 </span>
+              )}
+            </div>
+
+            <div className="cpp-personal">
+              {chef.email && (
+                <a href={`mailto:${chef.email}`} className="cpp-personal-item">
+                  <Mail size={16} /> {chef.email}
+                </a>
+              )}
+              {chef.profile?.experience && (
+                <span className="cpp-personal-item">
+                  <Briefcase size={16} /> {chef.profile.experience}
+                </span>
+              )}
+              {chef.profile?.website && (
+                <a href={chef.profile.website} target="_blank" rel="noreferrer" className="cpp-personal-item">
+                  <Globe size={16} /> Website
+                </a>
+              )}
+              {chef.profile?.instagram && (
+                <a href={chef.profile.instagram} target="_blank" rel="noreferrer" className="cpp-personal-item">
+                  <LinkIcon size={16} /> Instagram
+                </a>
+              )}
+              {chef.profile?.twitter && (
+                <a href={chef.profile.twitter} target="_blank" rel="noreferrer" className="cpp-personal-item">
+                  <LinkIcon size={16} /> Twitter
+                </a>
               )}
             </div>
           </div>
