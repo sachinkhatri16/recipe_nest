@@ -1191,6 +1191,124 @@ select.cd-input {
 .cd-analytics-table tr:last-child td { border-bottom: none; }
 .cd-at-name { font-weight: 600; color: #0f172a; }
 
+/* ── Analytics: skeleton loading ── */
+.cd-analytics-skeleton { display: flex; flex-direction: column; gap: 20px; }
+.cd-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.cd-skeleton-card {
+  height: 88px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: cd-shimmer 1.4s infinite;
+}
+.cd-skeleton-block {
+  height: 180px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: cd-shimmer 1.4s infinite;
+}
+@keyframes cd-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (max-width: 768px) {
+  .cd-skeleton-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Analytics: highlight cards ── */
+.cd-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.cd-highlight-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+}
+.cd-highlight-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cd-highlight-blue { background: #dbeafe; color: #2563eb; }
+.cd-highlight-rose { background: #ffe4e6; color: #e11d48; }
+.cd-highlight-body { min-width: 0; }
+.cd-highlight-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 4px;
+}
+.cd-highlight-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cd-highlight-num {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Analytics: category breakdown bars ── */
+.cd-cat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.cd-cat-row:last-child { margin-bottom: 0; }
+.cd-cat-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  width: 110px;
+  flex-shrink: 0;
+}
+.cd-cat-bar-track {
+  flex: 1;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.cd-cat-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 999px;
+  min-width: 4px;
+  transition: width 0.4s ease;
+}
+.cd-cat-count {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0f172a;
+  width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
 /* ═══════════════════════════════════════════
    PROFILE SETTINGS
    ═══════════════════════════════════════════ */

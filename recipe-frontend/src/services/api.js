@@ -77,6 +77,7 @@ export const chefAPI = {
   getOne: (id) => request(`/chefs/${id}`),
   submitVerification: (formData) => request("/chefs/verify", { method: "POST", body: formData, headers: { Authorization: `Bearer ${getToken()}` } }),
   getVerificationStatus: () => request("/chefs/verification-status"),
+  getMyAnalytics: () => request("/chefs/chef/analytics"),
 };
 
 /* --- Admin -------------------------------------------- */

@@ -4,21 +4,81 @@ const { uploadToCloudinary } = require("../middleware/upload");
 // GET /api/recipes — public, published only
 exports.getRecipes = async (req, res) => {
   try {
-    const { category, search, sort, page = 1, limit = 20 } = req.query;
+    const { category, search, ingredient, level, maxTime, sort, page = 1, limit = 20 } = req.query;
     const filter = { status: "Published" };
 
     if (category && category !== "All") {
       filter.category = category;
     }
 
-    if (search) {
-      filter.$text = { $search: search };
+    if (level && level !== "All") {
+      filter.level = level;
+    }
+
+    // Combined text search across title, description, tags, and ingredients
+    if (search || ingredient) {
+      const searchTerm = search || ingredient;
+      filter.$text = { $search: searchTerm };
+    }
+
+    // Filter by total time (prepTime + cookTime <= maxTime)
+    if (maxTime) {
+      const max = parseInt(maxTime);
+      filter.$expr = {
+        $lte: [
+          { $add: [{ $toInt: { $ifNull: ["$prepTime", "0"] } }, { $toInt: { $ifNull: ["$cookTime", "0"] } }] },
+          max,
+        ],
+      };
     }
 
     let sortOption = { createdAt: -1 };
     if (sort === "oldest") sortOption = { createdAt: 1 };
+    else if (sort === "most-reviewed") sortOption = { reviewCount: -1, createdAt: -1 };
+    else if (sort === "most-viewed") sortOption = { views: -1, createdAt: -1 };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // For most-reviewed sort we need a computed field; use aggregation in that case
+    if (sort === "most-reviewed") {
+      const pipeline = [
+        { $match: filter },
+        { $addFields: { reviewCount: { $size: "$reviews" } } },
+        { $sort: sortOption },
+        {
+          $lookup: {
+            from: "users",
+            localField: "chef",
+            foreignField: "_id",
+            as: "chef",
+            pipeline: [
+              { $project: { name: 1, "profile.avatar": 1, "profile.specialty": 1, verificationStatus: 1 } },
+            ],
+          },
+        },
+        { $unwind: { path: "$chef", preserveNullAndEmpty: true } },
+        {
+          $facet: {
+            recipes: [{ $skip: skip }, { $limit: parseInt(limit) }],
+            total: [{ $count: "count" }],
+          },
+        },
+      ];
+
+      const [result] = await Recipe.aggregate(pipeline);
+      const recipes = result.recipes || [];
+      const total = result.total[0]?.count || 0;
+
+      return res.json({
+        recipes,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit)),
+        },
+      });
+    }
 
     const [recipes, total] = await Promise.all([
       Recipe.find(filter)
@@ -48,7 +108,11 @@ exports.getRecipes = async (req, res) => {
 // GET /api/recipes/:id — public
 exports.getRecipe = async (req, res) => {
   try {
-    const recipe = await Recipe.findById(req.params.id)
+    const recipe = await Recipe.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { views: 1 } },
+      { new: true }
+    )
       .populate("chef", "name email profile verificationStatus")
       .populate("reviews.user", "name profile.avatar");
 

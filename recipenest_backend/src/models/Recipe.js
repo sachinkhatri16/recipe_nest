@@ -109,7 +109,7 @@ const recipeSchema = new mongoose.Schema(
 );
 
 // Indexes
-recipeSchema.index({ title: "text", description: "text", tags: "text" });
+recipeSchema.index({ title: "text", description: "text", tags: "text", "ingredients.name": "text" });
 recipeSchema.index({ chef: 1, status: 1 });
 recipeSchema.index({ category: 1 });
 recipeSchema.index({ status: 1, createdAt: -1 });
