@@ -1,9 +1,10 @@
 import { useAuth } from "../context/AuthContext";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { chefAPI } from "../services/api";
 import {
   ChefHat, Shield, Upload, Camera, FileCheck, AlertCircle,
-  CheckCircle2, Clock, ArrowRight, X, CreditCard, User,
+  Clock, ArrowRight, X, CreditCard,
   ArrowLeft, Loader2,
 } from "lucide-react";
 import "./ChefVerification.css";
@@ -16,6 +17,7 @@ export default function ChefVerification() {
   const [citizenNumber, setCitizenNumber] = useState("");
   const [idPhotoPreview, setIdPhotoPreview] = useState("");
   const [idPhotoName, setIdPhotoName] = useState("");
+  const [idPhotoFile, setIdPhotoFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
@@ -28,13 +30,34 @@ export default function ChefVerification() {
     if (user?.verificationStatus === "verified") {
       navigate("/chef-dashboard");
     }
-    if (user?.rejectionReason) {
-      setRejectionReason(user.rejectionReason);
+    const verificationData = user?.verificationData || {};
+    if (verificationData.rejectionReason) {
+      setRejectionReason(verificationData.rejectionReason);
     }
-    if (user?.citizenNumber) {
-      setCitizenNumber(user.citizenNumber);
+    if (verificationData.citizenNumber) {
+      setCitizenNumber(verificationData.citizenNumber);
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== "chef") return;
+
+    chefAPI
+      .getVerificationStatus()
+      .then((data) => {
+        const verificationData = data.verificationData || {};
+        updateUser({
+          verificationStatus: data.verificationStatus,
+          verificationData,
+        });
+        if (verificationData.rejectionReason) {
+          setRejectionReason(verificationData.rejectionReason);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load verification status:", err);
+      });
+  }, [isAuthenticated, user?.role, updateUser]);
 
   if (!user || user.role !== "chef") return null;
 
@@ -51,38 +74,52 @@ export default function ChefVerification() {
       alert("File must be under 5MB.");
       return;
     }
+    setIdPhotoFile(file);
     setIdPhotoName(file.name);
     const reader = new FileReader();
     reader.onload = (ev) => setIdPhotoPreview(ev.target.result);
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!citizenNumber.trim() || !idPhotoPreview) {
+    if (!citizenNumber.trim() || !idPhotoFile) {
       alert("Please provide both your citizen number and a photo of your ID.");
       return;
     }
     setSubmitting(true);
-    // Simulate submission
-    setTimeout(() => {
+    try {
+      const formData = new FormData();
+      formData.append("citizenNumber", citizenNumber.trim());
+      formData.append("idPhoto", idPhotoFile);
+
+      const data = await chefAPI.submitVerification(formData);
+      
       updateUser({
-        verificationStatus: "pending",
-        citizenNumber: citizenNumber.trim(),
-        idPhoto: idPhotoPreview,
-        submittedAt: new Date().toISOString(),
-        rejectionReason: "",
+        verificationStatus: data.verificationStatus || "pending",
+        verificationData: {
+          ...(data.verificationData || {}),
+          citizenNumber: citizenNumber.trim(),
+          submittedAt: data.verificationData?.submittedAt || new Date().toISOString(),
+          rejectionReason: "",
+        },
       });
+    } catch (err) {
+      alert(err.message || "Failed to submit verification");
+    } finally {
       setSubmitting(false);
-    }, 1500);
+    }
   };
 
   const handleResubmit = () => {
     updateUser({
       verificationStatus: "unverified",
-      rejectionReason: "",
-      citizenNumber: "",
-      idPhoto: "",
+      verificationData: {
+        ...(user?.verificationData || {}),
+        rejectionReason: "",
+        citizenNumber: "",
+        idPhoto: "",
+      },
     });
     setCitizenNumber("");
     setIdPhotoPreview("");
@@ -119,12 +156,12 @@ export default function ChefVerification() {
             <div className="cv-status-details">
               <div className="cv-status-detail-row">
                 <span className="cv-detail-label">Citizen Number</span>
-                <span className="cv-detail-value">{user.citizenNumber || citizenNumber}</span>
+                <span className="cv-detail-value">{user?.verificationData?.citizenNumber || citizenNumber}</span>
               </div>
               <div className="cv-status-detail-row">
                 <span className="cv-detail-label">Submitted</span>
                 <span className="cv-detail-value">
-                  {user.submittedAt ? new Date(user.submittedAt).toLocaleDateString() : "Just now"}
+                  {user?.verificationData?.submittedAt ? new Date(user.verificationData.submittedAt).toLocaleDateString() : "Just now"}
                 </span>
               </div>
               <div className="cv-status-detail-row">
@@ -159,12 +196,12 @@ export default function ChefVerification() {
               Unfortunately, your verification could not be completed.
               Please review the reason below and resubmit your documents.
             </p>
-            {(rejectionReason || user?.rejectionReason) && (
+            {(rejectionReason || user?.verificationData?.rejectionReason) && (
               <div className="cv-rejection-box">
                 <AlertCircle size={18} className="cv-rejection-icon" />
                 <div>
                   <h4 className="cv-rejection-label">Reason for rejection</h4>
-                  <p className="cv-rejection-reason">{rejectionReason || user.rejectionReason}</p>
+                  <p className="cv-rejection-reason">{rejectionReason || user?.verificationData?.rejectionReason}</p>
                 </div>
               </div>
             )}

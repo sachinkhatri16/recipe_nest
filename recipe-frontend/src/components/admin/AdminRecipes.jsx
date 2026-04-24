@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { BookOpen, Search, Eye, Trash2, ChefHat, Clock } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
 import { adminAPI } from "../../services/api";
+import toast from "react-hot-toast";
 
 export default function AdminRecipes() {
   const [recipes, setRecipes] = useState([]);
@@ -13,24 +14,30 @@ export default function AdminRecipes() {
     adminAPI
       .getAllRecipes()
       .then((data) => setRecipes(Array.isArray(data) ? data : data.recipes || []))
-      .catch((err) => console.error("Failed to load recipes:", err))
+      .catch((err) => {
+        console.error("Failed to load recipes:", err);
+        toast.error(err.message || "Failed to load recipes");
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = recipes.filter(r => {
-    const matchSearch = r.title.toLowerCase().includes(search.toLowerCase()) || (r.chef?.name || "").toLowerCase().includes(search.toLowerCase());
+    const matchSearch = (r.title || "").toLowerCase().includes(search.toLowerCase()) || (r.chef?.name || "").toLowerCase().includes(search.toLowerCase());
     const statusLabel = (r.status || "").toLowerCase();
     const matchFilter = filter === "all" || statusLabel === filter || (r.category || "").toLowerCase() === filter;
     return matchSearch && matchFilter;
   });
 
   const handleDelete = async (id) => {
+    const loadingToast = toast.loading("Deleting recipe...");
     try {
       await adminAPI.deleteRecipe(id);
       setRecipes(recipes.filter(r => r._id !== id));
       setDeleteConfirm(null);
+      toast.success("Recipe deleted successfully", { id: loadingToast });
     } catch (err) {
       console.error("Delete failed:", err);
+      toast.error(err.message || "Failed to delete recipe", { id: loadingToast });
     }
   };
 
@@ -55,14 +62,13 @@ export default function AdminRecipes() {
         <div className="ad-card"><div className="ad-card-body"><p>Loading recipes...</p></div></div>
       ) : (
         <div className="ad-card"><div className="ad-card-body-flush"><div className="ad-table-wrap">
-          <table className="ad-table"><thead><tr><th>Recipe</th><th>Chef</th><th>Category</th><th>Status</th><th>Views</th><th>Created</th><th>Actions</th></tr></thead>
+          <table className="ad-table"><thead><tr><th>Recipe</th><th>Chef</th><th>Category</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
           <tbody>{filtered.map(r => (
             <tr key={r._id}>
               <td className="ad-table-name">{r.title}</td>
               <td><div className="ad-user-cell"><div className="ad-user-avatar chef" style={{width:28,height:28,fontSize:"0.7rem"}}>{(r.chef?.name || "C").charAt(0)}</div><span>{r.chef?.name || "Unknown"}</span></div></td>
               <td><span className="ad-pill ad-pill-slate">{r.category}</span></td>
               <td><span className={`ad-pill ${r.status==="Published"?"ad-pill-green":"ad-pill-amber"}`}>{r.status}</span></td>
-              <td><span style={{display:"inline-flex",alignItems:"center",gap:4}}><Eye size={13} style={{color:"#94a3b8"}}/>{(r.views || 0).toLocaleString()}</span></td>
               <td style={{color:"#64748b",fontSize:"0.8125rem"}}>{new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
               <td><div className="ad-table-actions">
                 <button className="ad-btn-sm ad-btn-sm-reject" onClick={() => setDeleteConfirm(r)}><Trash2 size={14}/> Delete</button>

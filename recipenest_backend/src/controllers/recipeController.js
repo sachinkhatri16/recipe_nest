@@ -16,7 +16,6 @@ exports.getRecipes = async (req, res) => {
     }
 
     let sortOption = { createdAt: -1 };
-    if (sort === "views") sortOption = { views: -1 };
     if (sort === "oldest") sortOption = { createdAt: 1 };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -46,7 +45,7 @@ exports.getRecipes = async (req, res) => {
   }
 };
 
-// GET /api/recipes/:id — public, increments view
+// GET /api/recipes/:id — public
 exports.getRecipe = async (req, res) => {
   try {
     const recipe = await Recipe.findById(req.params.id)
@@ -56,10 +55,6 @@ exports.getRecipe = async (req, res) => {
     if (!recipe) {
       return res.status(404).json({ message: "Recipe not found" });
     }
-
-    // Increment views
-    recipe.views += 1;
-    await recipe.save();
 
     res.json(recipe);
   } catch (err) {
@@ -131,6 +126,12 @@ exports.createRecipe = async (req, res) => {
     res.status(201).json(recipe);
   } catch (err) {
     console.error("CreateRecipe error:", err);
+    if (err.name === "ValidationError") {
+      const firstError = Object.values(err.errors || {})[0];
+      return res
+        .status(400)
+        .json({ message: firstError?.message || "Invalid recipe data" });
+    }
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -194,6 +195,12 @@ exports.updateRecipe = async (req, res) => {
     res.json(recipe);
   } catch (err) {
     console.error("UpdateRecipe error:", err);
+    if (err.name === "ValidationError") {
+      const firstError = Object.values(err.errors || {})[0];
+      return res
+        .status(400)
+        .json({ message: firstError?.message || "Invalid recipe data" });
+    }
     res.status(500).json({ message: "Server error" });
   }
 };

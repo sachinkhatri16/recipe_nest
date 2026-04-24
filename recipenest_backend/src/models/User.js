@@ -48,8 +48,9 @@ const userSchema = new mongoose.Schema(
       default: "none",
     },
     verificationData: {
-      citizenNumber: { type: String, default: "" },
+      citizenNumber: { type: String, default: "" }, // Encrypted at rest
       idPhoto: { type: String, default: "" }, // Cloudinary URL
+      idPhotoPublicId: { type: String, default: "" }, // Store public ID for generating signed URLs
       specialty: { type: String, default: "" },
       experience: { type: String, default: "" },
       submittedAt: { type: Date },
@@ -96,7 +97,6 @@ userSchema.pre("save", async function () {
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
 });
-
 // Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);

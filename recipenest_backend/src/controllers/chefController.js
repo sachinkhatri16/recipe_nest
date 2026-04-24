@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Recipe = require("../models/Recipe");
 const { uploadToCloudinary } = require("../middleware/upload");
+const { encrypt } = require("../utils/crypto");
 
 // GET /api/chefs — list all verified chefs (public)
 exports.getChefs = async (req, res) => {
@@ -19,7 +20,7 @@ exports.getChefs = async (req, res) => {
       .select("name profile verificationStatus createdAt")
       .lean();
 
-    // Attach recipe count and total views for each chef
+    // Attach recipe and review stats for each chef
     const chefIds = chefs.map((c) => c._id);
     const recipeStats = await Recipe.aggregate([
       { $match: { chef: { $in: chefIds }, status: "Published" } },
@@ -27,7 +28,6 @@ exports.getChefs = async (req, res) => {
         $group: {
           _id: "$chef",
           recipeCount: { $sum: 1 },
-          totalViews: { $sum: "$views" },
           totalReviews: { $sum: { $size: "$reviews" } },
         },
       },
@@ -43,7 +43,6 @@ exports.getChefs = async (req, res) => {
       return {
         ...chef,
         recipeCount: stats.recipeCount || 0,
-        totalViews: stats.totalViews || 0,
         totalReviews: stats.totalReviews || 0,
       };
     });
@@ -69,11 +68,10 @@ exports.getChef = async (req, res) => {
     }
 
     const recipes = await Recipe.find({ chef: chef._id, status: "Published" })
-      .select("title coverImage category views reviews createdAt")
+      .select("title coverImage category reviews createdAt")
       .sort({ createdAt: -1 })
       .lean();
 
-    const totalViews = recipes.reduce((sum, r) => sum + (r.views || 0), 0);
     const totalReviews = recipes.reduce(
       (sum, r) => sum + (r.reviews ? r.reviews.length : 0),
       0
@@ -83,7 +81,6 @@ exports.getChef = async (req, res) => {
       ...chef.toObject(),
       recipes,
       recipeCount: recipes.length,
-      totalViews,
       totalReviews,
     });
   } catch (err) {
@@ -114,15 +111,26 @@ exports.submitVerification = async (req, res) => {
       return res.status(400).json({ message: "Citizen number is required" });
     }
 
+    if (!req.file) {
+      return res.status(400).json({ message: "ID photo is required" });
+    }
+
     let idPhoto = "";
+    let idPhotoPublicId = "";
     if (req.file) {
-      idPhoto = await uploadToCloudinary(req.file.buffer, "recipenest/verification");
+      const uploadResult = await uploadToCloudinary(req.file.buffer, "recipenest/verification", {
+        type: "authenticated",
+        getFullResult: true,
+      });
+      idPhoto = uploadResult.secure_url;
+      idPhotoPublicId = uploadResult.public_id;
     }
 
     user.verificationStatus = "pending";
     user.verificationData = {
-      citizenNumber,
+      citizenNumber: encrypt(citizenNumber),
       idPhoto,
+      idPhotoPublicId,
       specialty: specialty || "",
       experience: experience || "",
       submittedAt: new Date(),
@@ -134,6 +142,7 @@ exports.submitVerification = async (req, res) => {
     res.json({
       message: "Verification submitted. Please wait for admin review.",
       verificationStatus: user.verificationStatus,
+      verificationData: user.verificationData,
     });
   } catch (err) {
     console.error("SubmitVerification error:", err);

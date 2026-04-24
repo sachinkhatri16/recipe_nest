@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Shield, CheckCircle2, XCircle, Clock, Eye, ChefHat, CreditCard, Image, Search, Mail, AlertTriangle } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, Clock, CreditCard, Image, Search, Mail, AlertTriangle, RefreshCw } from "lucide-react";
 import { adminAPI } from "../../services/api";
+import toast from "react-hot-toast";
 
 export default function AdminVerificationHub() {
   const [queue, setQueue] = useState([]);
@@ -11,13 +12,29 @@ export default function AdminVerificationHub() {
   const [search, setSearch] = useState("");
   const [approvedMsg, setApprovedMsg] = useState("");
 
+  const loadQueue = async (showToast = false) => {
+    try {
+      const data = await adminAPI.getPendingChefs();
+      setQueue(Array.isArray(data) ? data : []);
+      if (showToast) toast.success("Verification queue refreshed");
+    } catch (err) {
+      console.error("Failed to load pending chefs:", err);
+      toast.error(err.message || "Failed to load pending verifications");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    adminAPI
-      .getPendingChefs()
-      .then((data) => setQueue(data))
-      .catch((err) => console.error("Failed to load pending chefs:", err))
-      .finally(() => setLoading(false));
+    loadQueue();
+    const intervalId = window.setInterval(() => loadQueue(), 30000);
+    return () => window.clearInterval(intervalId);
   }, []);
+
+  const handleRefresh = () => {
+    setLoading(true);
+    loadQueue(true);
+  };
 
   const filtered = queue.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -26,6 +43,7 @@ export default function AdminVerificationHub() {
   );
 
   const approveChef = async (id) => {
+    const loadingToast = toast.loading("Approving chef...");
     try {
       await adminAPI.verifyChef(id, "approved");
       const chef = queue.find(c => c._id === id);
@@ -33,21 +51,29 @@ export default function AdminVerificationHub() {
       setSelectedChef(null);
       setApprovedMsg(`${chef?.name} has been verified and can now publish recipes.`);
       setTimeout(() => setApprovedMsg(""), 4000);
+      toast.success("Chef approved successfully", { id: loadingToast });
     } catch (err) {
       console.error("Approve failed:", err);
+      toast.error(err.message || "Failed to approve chef", { id: loadingToast });
     }
   };
 
   const rejectChef = async (id) => {
-    if (!rejectReason.trim()) return;
+    if (!rejectReason.trim()) {
+      toast.error("Please provide a reason for rejection");
+      return;
+    }
+    const loadingToast = toast.loading("Rejecting chef...");
     try {
       await adminAPI.verifyChef(id, "rejected", rejectReason);
       setQueue(q => q.filter(c => c._id !== id));
       setSelectedChef(null);
       setShowRejectModal(false);
       setRejectReason("");
+      toast.success("Chef application rejected", { id: loadingToast });
     } catch (err) {
       console.error("Reject failed:", err);
+      toast.error(err.message || "Failed to reject chef", { id: loadingToast });
     }
   };
 
@@ -66,8 +92,13 @@ export default function AdminVerificationHub() {
           <h1 className="ad-page-title">Verification Hub</h1>
           <p className="ad-page-sub">Manually review and approve chef identity documents</p>
         </div>
-        <div className="ad-pill ad-pill-amber" style={{fontSize:"0.8125rem",padding:"6px 14px"}}>
-          <Clock size={14}/> {queue.length} pending
+        <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+          <button className="ad-btn-outline" onClick={handleRefresh} type="button">
+            <RefreshCw size={14}/> Refresh
+          </button>
+          <div className="ad-pill ad-pill-amber" style={{fontSize:"0.8125rem",padding:"6px 14px"}}>
+            <Clock size={14}/> {queue.length} pending
+          </div>
         </div>
       </div>
 

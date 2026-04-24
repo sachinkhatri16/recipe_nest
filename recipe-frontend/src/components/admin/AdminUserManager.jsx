@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Users, Search, CheckCircle2, AlertTriangle, UserCheck, Ban, ChefHat, Utensils, Shield, Mail } from "lucide-react";
 import { adminAPI } from "../../services/api";
+import toast from "react-hot-toast";
 
 export default function AdminUserManager() {
   const [users, setUsers] = useState([]);
@@ -14,40 +15,53 @@ export default function AdminUserManager() {
     adminAPI
       .getAllUsers()
       .then((data) => setUsers(data))
-      .catch((err) => console.error("Failed to load users:", err))
+      .catch((err) => {
+        console.error("Failed to load users:", err);
+        toast.error(err.message || "Failed to load users");
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = users.filter(u => {
-    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = (u.name || "").toLowerCase().includes(search.toLowerCase()) || (u.email || "").toLowerCase().includes(search.toLowerCase());
     const statusLabel = u.status === "banned" ? "banned" : "active";
     const matchFilter = filter === "all" || u.role === filter || statusLabel === filter;
     return matchSearch && matchFilter;
   });
 
-  const totalUsers = users.length;
-  const activeUsers = users.filter(u => u.status !== "banned").length;
-  const chefs = users.filter(u => u.role === "chef").length;
-  const banned = users.filter(u => u.status === "banned").length;
+  const countableUsers = users.filter((u) => u.role !== "admin");
+  const totalUsers = countableUsers.length;
+  const activeUsers = countableUsers.filter(u => u.status !== "banned").length;
+  const chefs = countableUsers.filter(u => u.role === "chef").length;
+  const banned = countableUsers.filter(u => u.status === "banned").length;
 
   const handleBan = async (id) => {
-    if (!banReason.trim()) return;
+    if (!banReason.trim()) {
+      toast.error("Please provide a reason for the ban");
+      return;
+    }
+    const loadingToast = toast.loading("Banning user...");
     try {
       await adminAPI.banUser(id, banReason);
       setUsers(users.map(u => u._id === id ? { ...u, status: "banned", banReason } : u));
       setBanModal(null);
       setBanReason("");
+      toast.success("User banned successfully", { id: loadingToast });
     } catch (err) {
       console.error("Ban failed:", err);
+      toast.error(err.message || "Failed to ban user", { id: loadingToast });
     }
   };
 
   const handleUnban = async (id) => {
+    const loadingToast = toast.loading("Unbanning user...");
     try {
       await adminAPI.unbanUser(id);
       setUsers(users.map(u => u._id === id ? { ...u, status: "active", banReason: "" } : u));
+      toast.success("User unbanned successfully", { id: loadingToast });
     } catch (err) {
       console.error("Unban failed:", err);
+      toast.error(err.message || "Failed to unban user", { id: loadingToast });
     }
   };
 
@@ -78,14 +92,21 @@ export default function AdminUserManager() {
           <table className="ad-table"><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody>{filtered.map(u => {
             const status = u.status === "banned" ? "Banned" : "Active";
+            const isAdmin = u.role === "admin";
             return (
               <tr key={u._id}>
-                <td><div className="ad-user-cell"><div className={`ad-user-avatar ${u.role}`}>{u.name.charAt(0)}</div><div><div className="ad-table-name">{u.name}</div><div className="ad-table-sub">{u.email}</div></div></div></td>
-                <td><span className={`ad-pill ${u.role==="chef"?"ad-pill-blue":"ad-pill-slate"}`}>{u.role === "chef" ? <><ChefHat size={11}/> Chef</> : <><Utensils size={11}/> Food Lover</>}</span></td>
+                <td><div className="ad-user-cell"><div className={`ad-user-avatar ${u.role}`}>{(u.name || "U").charAt(0)}</div><div><div className="ad-table-name">{u.name || "Unknown"}</div><div className="ad-table-sub">{u.email}</div></div></div></td>
+                <td>
+                  <span className={`ad-pill ${isAdmin ? "ad-pill-violet" : u.role==="chef" ? "ad-pill-blue" : "ad-pill-slate"}`}>
+                    {isAdmin ? <><Shield size={11}/> Admin</> : u.role === "chef" ? <><ChefHat size={11}/> Chef</> : <><Utensils size={11}/> Food Lover</>}
+                  </span>
+                </td>
                 <td><span className={`ad-pill ${status==="Active"?"ad-pill-green":"ad-pill-red"}`}><span className="ad-pill-icon">{status==="Active"?<CheckCircle2 size={12}/>:<Ban size={12}/>}</span>{status}</span></td>
                 <td>{new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</td>
                 <td><div className="ad-table-actions">
-                  {u.status !== "banned" ? (
+                  {isAdmin ? (
+                    <span className="ad-pill ad-pill-violet"><Shield size={12}/> Protected</span>
+                  ) : u.status !== "banned" ? (
                     <button className="ad-btn-sm ad-btn-sm-reject" onClick={() => setBanModal(u)}><Ban size={14}/> Ban</button>
                   ) : (
                     <button className="ad-btn-sm ad-btn-sm-approve" onClick={() => handleUnban(u._id)}><UserCheck size={14}/> Unban</button>
@@ -104,7 +125,9 @@ export default function AdminUserManager() {
             <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:16}}>
               <Mail size={14} style={{color:"#64748b"}}/>
               <span style={{color:"#64748b",fontSize:"0.875rem"}}>{banModal.email}</span>
-              <span className={`ad-pill ${banModal.role==="chef"?"ad-pill-blue":"ad-pill-slate"}`} style={{marginLeft:4}}>{banModal.role === "chef" ? "Chef" : "Food Lover"}</span>
+              <span className={`ad-pill ${banModal.role==="admin" ? "ad-pill-violet" : banModal.role==="chef"?"ad-pill-blue":"ad-pill-slate"}`} style={{marginLeft:4}}>
+                {banModal.role === "admin" ? "Admin" : banModal.role === "chef" ? "Chef" : "Food Lover"}
+              </span>
             </div>
             <p style={{color:"#64748b",fontSize:"0.875rem",margin:"0 0 20px"}}>This will restrict the user from accessing platform features.</p>
             <div style={{marginBottom:16}}>

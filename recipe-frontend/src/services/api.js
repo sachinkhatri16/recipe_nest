@@ -59,8 +59,8 @@ export const recipeAPI = {
     return request(`/recipes${q ? `?${q}` : ""}`);
   },
   getOne: (id) => request(`/recipes/${id}`),
-  create: (body) => request("/recipes", { method: "POST", body: JSON.stringify(body) }),
-  update: (id, body) => request(`/recipes/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  create: (body) => request("/recipes", { method: "POST", body: body instanceof FormData ? body : JSON.stringify(body) }),
+  update: (id, body) => request(`/recipes/${id}`, { method: "PUT", body: body instanceof FormData ? body : JSON.stringify(body) }),
   delete: (id) => request(`/recipes/${id}`, { method: "DELETE" }),
   getMyRecipes: () => request("/recipes/chef/my-recipes"),
   addReview: (id, text) => request(`/recipes/${id}/review`, { method: "POST", body: JSON.stringify({ text }) }),
@@ -108,4 +108,5 @@ export const adminAPI = {
 
   // Analytics
   getAnalytics: () => request("/admin/analytics"),
+  clearSampleData: () => request("/admin/sample-data", { method: "DELETE" }),
 };

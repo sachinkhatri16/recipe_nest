@@ -5,8 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
-    "seed": "node src/seed.js"
+    "dev": "node --watch server.js"
   },
   "keywords": ["recipe", "api", "mongodb"],
   "author": "",

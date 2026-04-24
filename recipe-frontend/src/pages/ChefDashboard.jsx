@@ -1,12 +1,12 @@
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   Plus,
   BookOpen,
   Star,
   LogOut,
-  Eye,
 
   X,
   ChefHat,
@@ -71,7 +71,7 @@ const SIDEBAR_TABS = [
    COMPONENT
    ────────────────────────────────────────── */
 export default function ChefDashboard() {
-  const { user, isAuthenticated, logout, updateUser } = useAuth();
+  const { user, isAuthenticated, loading, logout } = useAuth();
   const navigate = useNavigate();
   const coverInputRef = useRef(null);
 
@@ -104,9 +104,10 @@ export default function ChefDashboard() {
 
   /* — Auth guard — */
   useEffect(() => {
+    if (loading) return;
     if (!isAuthenticated) navigate("/auth");
     else if (user?.role !== "chef") navigate("/profile");
-  }, [isAuthenticated, user, navigate]);
+  }, [loading, isAuthenticated, user, navigate]);
 
   /* — Load recipes from API — */
   useEffect(() => {
@@ -118,12 +119,15 @@ export default function ChefDashboard() {
       .finally(() => setRecipesLoading(false));
   }, [user]);
 
+  if (loading) return null;
   if (!user || user.role !== "chef") return null;
 
   /* ──────────── Computed ──────────── */
   const publishedRecipes = recipes.filter((r) => r.status === "Published");
   const draftRecipes = recipes.filter((r) => r.status === "Draft");
-  const totalViews = recipes.reduce((s, r) => s + (r.views || 0), 0);
+  const getReviewCount = (recipe) =>
+    Array.isArray(recipe?.reviews) ? recipe.reviews.length : Number(recipe?.reviews || 0);
+  const totalReviews = recipes.reduce((sum, recipe) => sum + getReviewCount(recipe), 0);
 
 
   const filledIngredients = newRecipe.ingredients.filter((i) => i.name.trim());
@@ -131,6 +135,7 @@ export default function ChefDashboard() {
 
   const checklist = [
     { label: "Recipe title", done: !!newRecipe.title.trim() },
+    { label: "Category selected", done: !!newRecipe.category.trim() },
     { label: "Cover image included", done: !!newRecipe.coverImage.trim() },
     { label: "At least 3 ingredients", done: filledIngredients.length >= 3 },
     { label: "At least 2 steps", done: filledSteps.length >= 2 },
@@ -153,20 +158,49 @@ export default function ChefDashboard() {
   };
 
   const handleSaveRecipe = async (status) => {
-    if (!newRecipe.title.trim()) return;
+    if (!newRecipe.title.trim()) {
+      toast.error("Recipe title is required");
+      return;
+    }
+    if (!newRecipe.category.trim()) {
+      toast.error("Recipe category is required");
+      return;
+    }
+    const loadingToast = toast.loading(editingId ? "Updating recipe..." : "Creating recipe...");
     try {
-      if (editingId) {
-        const updated = await recipeAPI.update(editingId, { ...newRecipe, status });
-        setRecipes(recipes.map((r) => (r._id || r.id) === editingId ? updated : r));
-      } else {
-        const created = await recipeAPI.create({ ...newRecipe, status });
-        setRecipes([created, ...recipes]);
+      let payload = { ...newRecipe, status };
+      
+      // If we have a file, we MUST use FormData
+      if (newRecipe.coverImageFile) {
+        payload = new FormData();
+        payload.append("title", newRecipe.title);
+        payload.append("description", newRecipe.description || "");
+        payload.append("category", newRecipe.category || "");
+        payload.append("servings", newRecipe.servings || "");
+        payload.append("prepTime", newRecipe.prepTime || "");
+        payload.append("cookTime", newRecipe.cookTime || "");
+        payload.append("tags", JSON.stringify(newRecipe.tags));
+        payload.append("ingredients", JSON.stringify(newRecipe.ingredients));
+        payload.append("instructions", JSON.stringify(newRecipe.instructions));
+        payload.append("status", status);
+        payload.append("coverImage", newRecipe.coverImageFile);
       }
+
+      if (editingId) {
+        const updated = await recipeAPI.update(editingId, payload);
+        setRecipes(recipes.map((r) => (r._id || r.id) === editingId ? updated : r));
+        toast.success("Recipe updated successfully", { id: loadingToast });
+      } else {
+        const created = await recipeAPI.create(payload);
+        setRecipes([created, ...recipes]);
+        toast.success("Recipe created successfully", { id: loadingToast });
+      }
+      resetForm();
+      setActiveTab("my-recipes");
     } catch (err) {
       console.error("Save recipe failed:", err);
+      toast.error(err.message || "Failed to save recipe", { id: loadingToast });
     }
-    resetForm();
-    setActiveTab("my-recipes");
   };
 
   const handleDiscard = () => {
@@ -189,11 +223,14 @@ export default function ChefDashboard() {
 
   const handleDeleteRecipe = async (id) => {
     if (window.confirm("Are you sure you want to delete this recipe?")) {
+      const loadingToast = toast.loading("Deleting recipe...");
       try {
         await recipeAPI.delete(id);
         setRecipes(recipes.filter((r) => (r._id || r.id) !== id));
+        toast.success("Recipe deleted", { id: loadingToast });
       } catch (err) {
         console.error("Delete recipe failed:", err);
+        toast.error(err.message || "Failed to delete recipe", { id: loadingToast });
       }
     }
   };
@@ -371,7 +408,7 @@ export default function ChefDashboard() {
                   {isPending
                     ? 'Your documents are being reviewed. You can draft recipes, but publishing is locked until approval.'
                     : isRejected
-                    ? `Your verification was rejected${user?.rejectionReason ? `: ${user.rejectionReason}` : '. Please resubmit your documents.'}`
+                    ? `Your verification was rejected${user?.verificationData?.rejectionReason ? `: ${user.verificationData.rejectionReason}` : '. Please resubmit your documents.'}`
                     : 'Complete identity verification to unlock recipe publishing.'}
                 </p>
               </div>
@@ -419,13 +456,11 @@ export default function ChefDashboard() {
               </div>
               <div className="cd-stat-card">
                 <div className="cd-stat-icon-wrap cd-stat-blue">
-                  <Eye className="cd-stat-icon" />
+                  <Clock className="cd-stat-icon" />
                 </div>
                 <div className="cd-stat-data">
-                  <span className="cd-stat-num">
-                    {totalViews.toLocaleString()}
-                  </span>
-                  <span className="cd-stat-label">Total Views</span>
+                  <span className="cd-stat-num">{draftRecipes.length}</span>
+                  <span className="cd-stat-label">Drafts</span>
                 </div>
               </div>
               <div className="cd-stat-card">
@@ -433,9 +468,7 @@ export default function ChefDashboard() {
                   <MessageSquare className="cd-stat-icon" />
                 </div>
                 <div className="cd-stat-data">
-                  <span className="cd-stat-num">
-                    {recipes.reduce((s, r) => s + (r.reviews || 0), 0)}
-                  </span>
+                  <span className="cd-stat-num">{totalReviews}</span>
                   <span className="cd-stat-label">Reviews</span>
                 </div>
               </div>
@@ -489,13 +522,8 @@ export default function ChefDashboard() {
                       </div>
                       <div className="cd-recipe-center">
                         <span className="cd-recipe-stat">
-                          <Eye className="cd-recipe-stat-icon" />
-                          {(recipe.views || 0).toLocaleString()}
-                        </span>
-
-                        <span className="cd-recipe-stat">
                           <MessageSquare className="cd-recipe-stat-icon" />
-                          {recipe.reviews || 0}
+                          {getReviewCount(recipe)}
                         </span>
                       </div>
                       <div className="cd-recipe-right">
@@ -706,6 +734,7 @@ export default function ChefDashboard() {
                         <label>Category</label>
                         <select
                           className="cd-input"
+                          required
                           value={newRecipe.category}
                           onChange={(e) =>
                             setNewRecipe({
@@ -833,7 +862,7 @@ export default function ChefDashboard() {
                   <div className="cd-card-body">
                     <div
                       className="cd-cover-dropzone"
-                      onClick={() => coverInputRef.current?.focus()}
+                      onClick={() => coverInputRef.current?.click()}
                     >
                       {newRecipe.coverImage ? (
                         <div className="cd-cover-preview">
@@ -846,7 +875,9 @@ export default function ChefDashboard() {
                               setNewRecipe({
                                 ...newRecipe,
                                 coverImage: "",
+                                coverImageFile: null,
                               });
+                              if (coverInputRef.current) coverInputRef.current.value = "";
                             }}
                           >
                             <X size={16} />
@@ -867,21 +898,26 @@ export default function ChefDashboard() {
                         </div>
                       )}
                     </div>
-                    <div className="cd-cover-url-row">
-                      <input
-                        ref={coverInputRef}
-                        type="url"
-                        className="cd-input"
-                        value={newRecipe.coverImage}
-                        onChange={(e) =>
-                          setNewRecipe({
-                            ...newRecipe,
-                            coverImage: e.target.value,
-                          })
+                    <input
+                      ref={coverInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            setNewRecipe({
+                              ...newRecipe,
+                              coverImage: ev.target.result,
+                              coverImageFile: file,
+                            });
+                          };
+                          reader.readAsDataURL(file);
                         }
-                        placeholder="Or paste image URL here..."
-                      />
-                    </div>
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -1272,13 +1308,11 @@ export default function ChefDashboard() {
               </div>
               <div className="cd-stat-card">
                 <div className="cd-stat-icon-wrap cd-stat-blue">
-                  <Eye className="cd-stat-icon" />
+                  <Clock className="cd-stat-icon" />
                 </div>
                 <div className="cd-stat-data">
-                  <span className="cd-stat-num">
-                    {totalViews.toLocaleString()}
-                  </span>
-                  <span className="cd-stat-label">Total Views</span>
+                  <span className="cd-stat-num">{draftRecipes.length}</span>
+                  <span className="cd-stat-label">Drafts</span>
                 </div>
               </div>
               <div className="cd-stat-card">
@@ -1286,9 +1320,7 @@ export default function ChefDashboard() {
                   <MessageSquare className="cd-stat-icon" />
                 </div>
                 <div className="cd-stat-data">
-                  <span className="cd-stat-num">
-                    {recipes.reduce((s, r) => s + (r.reviews || 0), 0)}
-                  </span>
+                  <span className="cd-stat-num">{totalReviews}</span>
                   <span className="cd-stat-label">Reviews</span>
                 </div>
               </div>
@@ -1317,8 +1349,6 @@ export default function ChefDashboard() {
                       <tr>
                         <th>Recipe</th>
                         <th>Status</th>
-                        <th>Views</th>
-
                         <th>Reviews</th>
                       </tr>
                     </thead>
@@ -1333,9 +1363,7 @@ export default function ChefDashboard() {
                               {r.status}
                             </span>
                           </td>
-                          <td>{(r.views || 0).toLocaleString()}</td>
-
-                          <td>{r.reviews || 0}</td>
+                          <td>{getReviewCount(r)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1399,12 +1427,12 @@ export default function ChefDashboard() {
                     <span className="cd-pp-stat-label">Recipes</span>
                   </div>
                   <div className="cd-pp-stat">
-                    <span className="cd-pp-stat-num">{recipes.reduce((s, r) => s + (r.reviews || 0), 0)}</span>
+                    <span className="cd-pp-stat-num">{totalReviews}</span>
                     <span className="cd-pp-stat-label">Reviews</span>
                   </div>
                   <div className="cd-pp-stat">
-                    <span className="cd-pp-stat-num">{totalViews.toLocaleString()}</span>
-                    <span className="cd-pp-stat-label">Views</span>
+                    <span className="cd-pp-stat-num">{draftRecipes.length}</span>
+                    <span className="cd-pp-stat-label">Drafts</span>
                   </div>
                 </div>
                 {(profile.instagram ||

@@ -168,8 +168,8 @@ export default function ChefsPage() {
                     </div>
                     <div className="cp-card-stat">
                       <ChefHat className="cp-card-stat-icon" />
-                      <span className="cp-card-stat-num">{chef.totalViews || 0}</span>
-                      <span className="cp-card-stat-label">Views</span>
+                      <span className="cp-card-stat-num">{chef.totalReviews || 0}</span>
+                      <span className="cp-card-stat-label">Reviews</span>
                     </div>
                   </div>
 

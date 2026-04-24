@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { BarChart3, TrendingUp, Users, BookOpen, Eye, ArrowUpRight } from "lucide-react";
+import { Users, BookOpen, MessageSquare, ShieldCheck } from "lucide-react";
 import { adminAPI } from "../../services/api";
+import toast from "react-hot-toast";
 
 function DonutChart({ data, size = 180 }) {
   if (!data || data.length === 0) return null;
@@ -47,7 +48,10 @@ export default function AdminAnalytics() {
     adminAPI
       .getAnalytics()
       .then((data) => setAnalytics(data))
-      .catch((err) => console.error("Failed to load analytics:", err))
+      .catch((err) => {
+        console.error("Failed to load analytics:", err);
+        toast.error(err.message || "Failed to load analytics");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -64,8 +68,8 @@ export default function AdminAnalytics() {
   const stats = [
     { icon: Users, label: "Total Users", value: ov.totalUsers || 0, color: "blue" },
     { icon: BookOpen, label: "Total Recipes", value: ov.totalRecipes || 0, color: "emerald" },
-    { icon: Eye, label: "Total Views", value: ov.totalViews || 0, color: "violet" },
-    { icon: TrendingUp, label: "Verified Chefs", value: ov.verifiedChefs || 0, color: "amber" },
+    { icon: MessageSquare, label: "Total Reviews", value: ov.totalReviews || 0, color: "violet" },
+    { icon: ShieldCheck, label: "Verified Chefs", value: ov.verifiedChefs || 0, color: "amber" },
   ];
 
   return (
@@ -99,7 +103,7 @@ export default function AdminAnalytics() {
       {analytics.topRecipes && analytics.topRecipes.length > 0 && (
         <div className="ad-card" style={{marginTop:20}}>
           <div className="ad-card-body">
-            <h3 style={{margin:"0 0 16px",fontSize:"0.9375rem",fontWeight:700,color:"#1e293b"}}>Top Recipes by Views</h3>
+            <h3 style={{margin:"0 0 16px",fontSize:"0.9375rem",fontWeight:700,color:"#1e293b"}}>Most Reviewed Recipes</h3>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {analytics.topRecipes.map((r, i) => (
                 <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:i===0?"#f0fdf4":"#f8fafc",borderRadius:10,border:"1px solid #e2e8f0"}}>
@@ -108,7 +112,7 @@ export default function AdminAnalytics() {
                     <p style={{margin:0,fontWeight:600,fontSize:"0.875rem",color:"#1e293b"}}>{r.title}</p>
                     <p style={{margin:0,fontSize:"0.75rem",color:"#64748b"}}>by {r.chef?.name || "Chef"}</p>
                   </div>
-                  <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:"0.8125rem",fontWeight:600,color:"#334155"}}><Eye size={14} style={{color:"#94a3b8"}}/>{(r.views || 0).toLocaleString()}</span>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:"0.8125rem",fontWeight:600,color:"#334155"}}><MessageSquare size={14} style={{color:"#94a3b8"}}/>{(r.reviewCount || 0).toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -131,7 +135,7 @@ export default function AdminAnalytics() {
                     <p style={{margin:0,fontWeight:600,fontSize:"0.875rem",color:"#1e293b"}}>{c.name}</p>
                   </div>
                   <span style={{fontSize:"0.8125rem",color:"#64748b"}}>{c.recipeCount || 0} recipes</span>
-                  <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:"0.8125rem",fontWeight:600,color:"#334155"}}><Eye size={14} style={{color:"#94a3b8"}}/>{(c.totalViews || 0).toLocaleString()}</span>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:"0.8125rem",fontWeight:600,color:"#334155"}}><MessageSquare size={14} style={{color:"#94a3b8"}}/>{(c.totalReviews || 0).toLocaleString()}</span>
                 </div>
               ))}
             </div>

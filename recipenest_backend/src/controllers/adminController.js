@@ -1,5 +1,20 @@
 const User = require("../models/User");
 const Recipe = require("../models/Recipe");
+const cloudinary = require("../config/cloudinary");
+const { decrypt } = require("../utils/crypto");
+
+const SEEDED_USER_EMAILS = [
+  "asha@mail.com",
+  "priya@mail.com",
+  "arjun@mail.com",
+  "rajan@mail.com",
+  "sita@mail.com",
+  "bikash@mail.com",
+  "deepak@mail.com",
+  "binod@mail.com",
+  "meera@mail.com",
+  "kamal@mail.com",
+];
 
 // GET /api/admin/users — list all users
 exports.getUsers = async (req, res) => {
@@ -40,7 +55,7 @@ exports.getUsers = async (req, res) => {
     res.json(enriched);
   } catch (err) {
     console.error("AdminGetUsers error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message || "Server error while fetching users" });
   }
 };
 
@@ -63,7 +78,7 @@ exports.banUser = async (req, res) => {
     res.json({ message: `${user.name} has been banned`, user });
   } catch (err) {
     console.error("BanUser error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message || "Server error while banning user" });
   }
 };
 
@@ -81,7 +96,7 @@ exports.unbanUser = async (req, res) => {
     res.json({ message: `${user.name} has been unbanned`, user });
   } catch (err) {
     console.error("UnbanUser error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message || "Server error while unbanning user" });
   }
 };
 
@@ -96,10 +111,42 @@ exports.getPendingVerifications = async (req, res) => {
       .sort({ "verificationData.submittedAt": 1 })
       .lean();
 
-    res.json(pending);
+    // Map through the results to decrypt the citizenNumber & generate signed URLs for authenticated images
+    const securePending = pending.map((user) => {
+      let securePhotoUrl = user.verificationData?.idPhoto || "";
+      let decryptedCitizenNumber = "";
+      
+      if (user.verificationData) {
+        if (user.verificationData.idPhotoPublicId) {
+          securePhotoUrl = cloudinary.url(user.verificationData.idPhotoPublicId, {
+            type: "authenticated",
+            secure: true,
+            sign_url: true,
+          });
+        }
+        if (user.verificationData.citizenNumber) {
+          try {
+             decryptedCitizenNumber = decrypt(user.verificationData.citizenNumber);
+          } catch(e) {
+             decryptedCitizenNumber = "Decryption Error";
+          }
+        }
+      }
+
+      return {
+        ...user,
+        verificationData: {
+          ...user.verificationData,
+          citizenNumber: decryptedCitizenNumber,
+          idPhoto: securePhotoUrl, 
+        },
+      };
+    });
+
+    res.json(securePending);
   } catch (err) {
     console.error("GetPendingVerifications error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message || "Server error while fetching pending verifications" });
   }
 };
 
@@ -118,7 +165,7 @@ exports.approveChef = async (req, res) => {
     res.json({ message: `${user.name} has been verified`, user });
   } catch (err) {
     console.error("ApproveChef error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message || "Server error while approving chef" });
   }
 };
 
@@ -139,7 +186,7 @@ exports.rejectChef = async (req, res) => {
     res.json({ message: `${user.name} has been rejected`, user });
   } catch (err) {
     console.error("RejectChef error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message || "Server error while rejecting chef" });
   }
 };
 
@@ -165,7 +212,7 @@ exports.getAllRecipes = async (req, res) => {
     res.json(recipes);
   } catch (err) {
     console.error("AdminGetAllRecipes error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message || "Server error while fetching recipes" });
   }
 };
 
@@ -175,11 +222,17 @@ exports.deleteRecipe = async (req, res) => {
     const recipe = await Recipe.findById(req.params.id);
     if (!recipe) return res.status(404).json({ message: "Recipe not found" });
 
+    // Also remove recipe from saved recipes in users
+    await User.updateMany(
+      { savedRecipes: recipe._id },
+      { $pull: { savedRecipes: recipe._id } }
+    );
+
     await recipe.deleteOne();
     res.json({ message: "Recipe deleted by admin" });
   } catch (err) {
     console.error("AdminDeleteRecipe error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message || "Server error while deleting recipe" });
   }
 };
 
@@ -206,11 +259,11 @@ exports.getAnalytics = async (req, res) => {
       User.countDocuments({ role: "chef", verificationStatus: "verified" }),
     ]);
 
-    // Total views across all recipes
-    const viewsAgg = await Recipe.aggregate([
-      { $group: { _id: null, totalViews: { $sum: "$views" } } },
+    const reviewsAgg = await Recipe.aggregate([
+      { $project: { reviewCount: { $size: "$reviews" } } },
+      { $group: { _id: null, totalReviews: { $sum: "$reviewCount" } } },
     ]);
-    const totalViews = viewsAgg[0]?.totalViews || 0;
+    const totalReviews = reviewsAgg[0]?.totalReviews || 0;
 
     // Category distribution
     const categoryDist = await Recipe.aggregate([
@@ -219,13 +272,29 @@ exports.getAnalytics = async (req, res) => {
       { $sort: { count: -1 } },
     ]);
 
-    // Top recipes by views
-    const topRecipes = await Recipe.find({ status: "Published" })
-      .populate("chef", "name")
-      .sort({ views: -1 })
-      .limit(10)
-      .select("title chef views reviews category")
-      .lean();
+    const topRecipes = await Recipe.aggregate([
+      { $match: { status: "Published" } },
+      { $addFields: { reviewCount: { $size: "$reviews" } } },
+      { $sort: { reviewCount: -1, createdAt: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "chef",
+          foreignField: "_id",
+          as: "chef",
+        },
+      },
+      {
+        $project: {
+          title: 1,
+          category: 1,
+          createdAt: 1,
+          reviewCount: 1,
+          chef: { $arrayElemAt: ["$chef", 0] },
+        },
+      },
+    ]);
 
     // Top chefs by recipe count
     const topChefs = await Recipe.aggregate([
@@ -234,7 +303,7 @@ exports.getAnalytics = async (req, res) => {
         $group: {
           _id: "$chef",
           recipeCount: { $sum: 1 },
-          totalViews: { $sum: "$views" },
+          totalReviews: { $sum: { $size: "$reviews" } },
         },
       },
       { $sort: { recipeCount: -1 } },
@@ -253,7 +322,7 @@ exports.getAnalytics = async (req, res) => {
           name: "$chef.name",
           avatar: "$chef.profile.avatar",
           recipeCount: 1,
-          totalViews: 1,
+          totalReviews: 1,
         },
       },
     ]);
@@ -306,14 +375,22 @@ exports.getAnalytics = async (req, res) => {
         totalChefs,
         totalRecipes,
         publishedRecipes,
-        totalViews,
+        totalReviews,
         activeUsers,
         bannedUsers,
         pendingVerifications,
         verifiedChefs,
       },
       categoryDistribution: categoryDist,
-      topRecipes,
+      topRecipes: topRecipes.map((recipe) => ({
+        ...recipe,
+        chef: recipe.chef
+          ? {
+              _id: recipe.chef._id,
+              name: recipe.chef.name,
+            }
+          : null,
+      })),
       topChefs: topChefs.map((c) => ({
         ...c,
         saves: savesMap[c._id.toString()] || 0,
@@ -323,6 +400,60 @@ exports.getAnalytics = async (req, res) => {
     });
   } catch (err) {
     console.error("GetAnalytics error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message || "Server error while fetching analytics" });
+  }
+};
+
+// DELETE /api/admin/sample-data
+exports.clearSampleData = async (req, res) => {
+  try {
+    const seededUsers = await User.find({
+      email: { $in: SEEDED_USER_EMAILS },
+      role: { $ne: "admin" },
+    })
+      .select("_id")
+      .lean();
+
+    const seededUserIds = seededUsers.map((user) => user._id);
+    const seededRecipes = await Recipe.find({
+      chef: { $in: seededUserIds },
+    })
+      .select("_id")
+      .lean();
+    const seededRecipeIds = seededRecipes.map((recipe) => recipe._id);
+
+    if (seededUserIds.length === 0 && seededRecipeIds.length === 0) {
+      return res.json({
+        message: "No seeded sample data found",
+        deletedUsers: 0,
+        deletedRecipes: 0,
+      });
+    }
+
+    await User.updateMany(
+      {},
+      {
+        $pull: {
+          savedRecipes: { $in: seededRecipeIds },
+          savedChefs: { $in: seededUserIds },
+        },
+      }
+    );
+
+    const deletedRecipesResult = seededRecipeIds.length
+      ? await Recipe.deleteMany({ _id: { $in: seededRecipeIds } })
+      : { deletedCount: 0 };
+    const deletedUsersResult = seededUserIds.length
+      ? await User.deleteMany({ _id: { $in: seededUserIds } })
+      : { deletedCount: 0 };
+
+    res.json({
+      message: "Seeded sample data removed",
+      deletedUsers: deletedUsersResult.deletedCount || 0,
+      deletedRecipes: deletedRecipesResult.deletedCount || 0,
+    });
+  } catch (err) {
+    console.error("ClearSampleData error:", err);
+    res.status(500).json({ message: err.message || "Server error while removing sample data" });
   }
 };

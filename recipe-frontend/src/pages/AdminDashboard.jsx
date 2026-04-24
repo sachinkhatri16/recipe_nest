@@ -1,10 +1,10 @@
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   Shield, Users, BookOpen, BarChart3, LogOut, ChefHat,
-  Home, Settings, Clock, CheckCircle2, Eye,
-  TrendingUp, ArrowUpRight,
+  Home, Settings, Clock, MessageSquare, TrendingUp,
 } from "lucide-react";
 import AdminVerificationHub from "../components/admin/AdminVerificationHub";
 import AdminUserManager from "../components/admin/AdminUserManager";
@@ -22,15 +22,26 @@ const NAV_ITEMS = [
 ];
 
 export default function AdminDashboard() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
+    if (loading) return;
     if (!isAuthenticated) navigate("/auth");
     else if (user?.role !== "admin") navigate("/");
-  }, [isAuthenticated, user, navigate]);
+    else {
+      // Fetch pending count for the sidebar badge
+      adminAPI.getAnalytics()
+        .then((data) => {
+          setPendingCount(data.overview?.pendingVerifications || data.pendingVerifications || data.overview?.pendingChefs || data.pendingChefs || 0);
+        })
+        .catch(console.error);
+    }
+  }, [isAuthenticated, user, navigate, loading]);
 
+  if (loading) return <div>Loading...</div>;
   if (!user || user.role !== "admin") return null;
 
   return (
@@ -44,9 +55,9 @@ export default function AdminDashboard() {
           </Link>
 
           <div className="ad-admin-card">
-            <div className="ad-admin-avatar">A</div>
+            <div className="ad-admin-avatar">{user.name ? user.name.charAt(0).toUpperCase() : "A"}</div>
             <div>
-              <p className="ad-admin-name">{user.name || "Admin"}</p>
+              <p className="ad-admin-name">{user.name}</p>
               <p className="ad-admin-label">Administrator</p>
             </div>
           </div>
@@ -60,7 +71,7 @@ export default function AdminDashboard() {
               >
                 <item.icon className="ad-nav-icon"/>
                 {item.label}
-                {item.key === "verification" && <span className="ad-nav-badge">3</span>}
+                {item.key === "verification" && pendingCount > 0 && <span className="ad-nav-badge">{pendingCount}</span>}
               </button>
             ))}
           </nav>
@@ -131,7 +142,7 @@ function OverviewTab({ setActiveTab }) {
   const stats = [
     { icon: Users, label: "Total Users", value: ov.totalUsers || 0, color: "blue" },
     { icon: BookOpen, label: "Total Recipes", value: ov.totalRecipes || 0, color: "emerald" },
-    { icon: Eye, label: "Total Views", value: ov.totalViews || 0, color: "violet" },
+    { icon: MessageSquare, label: "Total Reviews", value: ov.totalReviews || 0, color: "violet" },
   ];
 
   const pendingCount = ov.pendingVerifications || ov.pendingChefs || 0;
@@ -192,19 +203,52 @@ function OverviewTab({ setActiveTab }) {
 
 /* ─── SETTINGS TAB ─── */
 function SettingsTab() {
+  const { user } = useAuth();
+  const [cleaning, setCleaning] = useState(false);
+
+  const handleClearSampleData = async () => {
+    if (!window.confirm("Remove the seeded sample chefs, users, and recipes from the database?")) {
+      return;
+    }
+
+    setCleaning(true);
+    const loadingToast = toast.loading("Removing sample data...");
+    try {
+      const result = await adminAPI.clearSampleData();
+      toast.success(result.message || "Sample data removed", { id: loadingToast });
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to remove sample data:", err);
+      toast.error(err.message || "Failed to remove sample data", { id: loadingToast });
+    } finally {
+      setCleaning(false);
+    }
+  };
+
   return (
     <div className="ad-content ad-fade-in">
       <div className="ad-page-header"><div><h1 className="ad-page-title">Settings</h1><p className="ad-page-sub">Platform configuration</p></div></div>
       <div className="ad-card"><div className="ad-card-body">
         <div style={{display:"flex",flexDirection:"column",gap:20}}>
           <div><label style={{fontSize:"0.8125rem",fontWeight:600,color:"#334155",display:"block",marginBottom:6}}>Platform Name</label><input className="ad-input" defaultValue="RecipeNest"/></div>
-          <div><label style={{fontSize:"0.8125rem",fontWeight:600,color:"#334155",display:"block",marginBottom:6}}>Admin Email</label><input className="ad-input" defaultValue="admin@recipenest.com"/></div>
+          <div><label style={{fontSize:"0.8125rem",fontWeight:600,color:"#334155",display:"block",marginBottom:6}}>Admin Email</label><input className="ad-input" defaultValue={user?.email || ""} readOnly /></div>
           <div style={{padding:"14px 16px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0"}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
               <Shield size={16} style={{color:"#059669"}}/>
               <span style={{fontSize:"0.8125rem",fontWeight:700,color:"#065f46"}}>Manual Verification Only</span>
             </div>
             <p style={{margin:0,fontSize:"0.8125rem",color:"#047857"}}>All chef verifications require admin review. You must personally inspect the submitted citizen number, email, and ID document photo before approving.</p>
+          </div>
+          <div style={{padding:"16px",background:"#fff7ed",borderRadius:10,border:"1px solid #fdba74"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,flexWrap:"wrap"}}>
+              <div>
+                <p style={{margin:"0 0 4px",fontSize:"0.875rem",fontWeight:700,color:"#9a3412"}}>Sample Data Cleanup</p>
+                <p style={{margin:0,fontSize:"0.8125rem",color:"#c2410c"}}>Use this once to remove the seeded demo chefs, recipes, and pending verifications from the admin panel.</p>
+              </div>
+              <button className="ad-btn-outline" onClick={handleClearSampleData} disabled={cleaning}>
+                {cleaning ? "Removing..." : "Remove Sample Data"}
+              </button>
+            </div>
           </div>
         </div>
       </div></div>

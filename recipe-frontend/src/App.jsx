@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import Homepage from "./pages/Homepage.jsx";
 import RecipesPage from "./pages/RecipesPage.jsx";
 import RecipeDetailPage from "./pages/RecipeDetailPage.jsx";
@@ -13,6 +14,7 @@ import ChefVerification from "./pages/ChefVerification.jsx";
 export default function App() {
   return (
     <Router>
+      <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <Routes>
           <Route path="/" element={<Homepage />} />
