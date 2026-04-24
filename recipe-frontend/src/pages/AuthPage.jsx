@@ -55,11 +55,7 @@ export default function AuthPage() {
       if (user.role === "admin") {
         navigate("/admin-dashboard");
       } else if (user.role === "chef") {
-        if (user.verificationStatus === "verified") {
-          navigate("/chef-dashboard");
-        } else {
-          navigate("/chef-verification");
-        }
+        navigate("/chef-dashboard");
       } else {
         navigate("/");
       }
@@ -110,7 +106,7 @@ export default function AuthPage() {
     try {
       const user = await register({ name: signupName, email: signupEmail, password: signupPassword, role });
       if (user.role === "chef") {
-        navigate("/chef-verification");
+        navigate("/chef-dashboard");
       } else {
         navigate("/");
       }

@@ -9,7 +9,6 @@ const {
   getAllRecipes,
   deleteRecipe,
   getAnalytics,
-  clearSampleData,
 } = require("../controllers/adminController");
 const { auth, adminOnly } = require("../middleware/auth");
 
@@ -28,6 +27,5 @@ router.get("/recipes", getAllRecipes);
 router.delete("/recipes/:id", deleteRecipe);
 
 router.get("/analytics", getAnalytics);
-router.delete("/sample-data", clearSampleData);
 
 module.exports = router;

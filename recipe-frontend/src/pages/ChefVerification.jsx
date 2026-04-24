@@ -1,7 +1,9 @@
 import { useAuth } from "../context/AuthContext";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import { chefAPI } from "../services/api";
+import { getChefProfileCompletion } from "../utils/chefProfile";
 import {
   ChefHat, Shield, Upload, Camera, FileCheck, AlertCircle,
   Clock, ArrowRight, X, CreditCard,
@@ -15,12 +17,15 @@ export default function ChefVerification() {
   const fileInputRef = useRef(null);
 
   const [citizenNumber, setCitizenNumber] = useState("");
-  const [bio, setBio] = useState(user?.profile?.bio || "");
   const [idPhotoPreview, setIdPhotoPreview] = useState("");
   const [idPhotoName, setIdPhotoName] = useState("");
   const [idPhotoFile, setIdPhotoFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const { isComplete: isChefProfileComplete } = getChefProfileCompletion(
+    user?.profile,
+    user
+  );
 
   useEffect(() => {
     if (!isAuthenticated) navigate("/auth");
@@ -30,7 +35,19 @@ export default function ChefVerification() {
   useEffect(() => {
     if (user?.verificationStatus === "verified") {
       navigate("/chef-dashboard");
+      return;
     }
+
+    if (
+      user?.role === "chef" &&
+      user?.verificationStatus !== "pending" &&
+      !isChefProfileComplete
+    ) {
+      toast.error("Complete your personal profile before starting verification.");
+      navigate("/chef-dashboard", { replace: true });
+      return;
+    }
+
     const verificationData = user?.verificationData || {};
     if (verificationData.rejectionReason) {
       setRejectionReason(verificationData.rejectionReason);
@@ -38,7 +55,7 @@ export default function ChefVerification() {
     if (verificationData.citizenNumber) {
       setCitizenNumber(verificationData.citizenNumber);
     }
-  }, [user, navigate]);
+  }, [user, navigate, isChefProfileComplete]);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== "chef") return;
@@ -84,15 +101,14 @@ export default function ChefVerification() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!citizenNumber.trim() || !idPhotoFile || !bio.trim()) {
-      alert("Please provide your citizen number, bio, and a photo of your ID.");
+    if (!citizenNumber.trim() || !idPhotoFile) {
+      alert("Please provide your citizen number and a photo of your ID.");
       return;
     }
     setSubmitting(true);
     try {
       const formData = new FormData();
       formData.append("citizenNumber", citizenNumber.trim());
-      formData.append("bio", bio.trim());
       formData.append("idPhoto", idPhotoFile);
 
       const data = await chefAPI.submitVerification(formData);
@@ -257,25 +273,6 @@ export default function ChefVerification() {
                   </div>
                 </div>
 
-                <div className="cv-form-group">
-                  <label className="cv-label">
-                    Bio <span className="cv-required">*</span>
-                  </label>
-                  <div className="cv-input-wrap align-top">
-                    <textarea
-                      className="cv-input"
-                      placeholder="Tell us about your culinary background and passion for cooking..."
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      required
-                      rows="4"
-                      style={{ paddingTop: '0.75rem' }}
-                    />
-                  </div>
-                  <p className="cv-hint" style={{ marginTop: '0.25rem', fontSize: '0.85rem', color: '#64748b' }}>
-                    Your bio will be displayed on your Chef Profile.
-                  </p>
-                </div>
               </div>
 
               {/* Step 2: ID Photo */}

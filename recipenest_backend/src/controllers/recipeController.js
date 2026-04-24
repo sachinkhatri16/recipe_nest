@@ -84,7 +84,6 @@ exports.createRecipe = async (req, res) => {
       tips,
       status,
       isPublic,
-      allowComments,
     } = req.body;
 
     let coverImage = "";
@@ -117,7 +116,6 @@ exports.createRecipe = async (req, res) => {
       tips: typeof tips === "string" ? JSON.parse(tips) : tips || [],
       status: status || "Draft",
       isPublic: isPublic !== undefined ? isPublic : true,
-      allowComments: allowComments !== undefined ? allowComments : true,
       chef: req.user._id,
     });
 
@@ -170,7 +168,6 @@ exports.updateRecipe = async (req, res) => {
       "chefNote",
       "status",
       "isPublic",
-      "allowComments",
     ];
 
     updateFields.forEach((field) => {
@@ -250,10 +247,6 @@ exports.addReview = async (req, res) => {
     const recipe = await Recipe.findById(req.params.id);
     if (!recipe) {
       return res.status(404).json({ message: "Recipe not found" });
-    }
-
-    if (!recipe.allowComments) {
-      return res.status(403).json({ message: "Comments are disabled" });
     }
 
     recipe.reviews.push({

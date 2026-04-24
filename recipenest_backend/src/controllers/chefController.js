@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Recipe = require("../models/Recipe");
 const { uploadToCloudinary } = require("../middleware/upload");
 const { encrypt } = require("../utils/crypto");
+const { getChefProfileCompletion } = require("../utils/chefProfile");
 
 // GET /api/chefs — list all verified chefs (public)
 exports.getChefs = async (req, res) => {
@@ -106,17 +107,20 @@ exports.submitVerification = async (req, res) => {
       return res.status(400).json({ message: "Verification already pending" });
     }
 
-    const { citizenNumber, specialty, experience, bio } = req.body;
+    const { citizenNumber, specialty, experience } = req.body;
     if (!citizenNumber) {
       return res.status(400).json({ message: "Citizen number is required" });
     }
 
-    if (!bio || !bio.trim()) {
-      return res.status(400).json({ message: "Bio is required for verification" });
-    }
-
     if (!req.file) {
       return res.status(400).json({ message: "ID photo is required" });
+    }
+
+    const { isComplete } = getChefProfileCompletion(user);
+    if (!isComplete) {
+      return res.status(400).json({
+        message: "Please complete your personal profile before starting verification",
+      });
     }
 
     let idPhoto = "";
@@ -139,11 +143,6 @@ exports.submitVerification = async (req, res) => {
       experience: experience || "",
       submittedAt: new Date(),
       rejectionReason: "",
-    };
-
-    user.profile = {
-      ...user.profile,
-      bio: bio.trim(),
     };
 
     await user.save();

@@ -4,7 +4,7 @@ const Recipe = require("../models/Recipe");
 // PUT /api/users/profile
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, displayName, bio, location, specialty, website, instagram, twitter } = req.body;
+    const { name, displayName, bio, location, specialty, experience, website, instagram, twitter } = req.body;
     const user = await User.findById(req.user._id);
 
     if (name) {
@@ -17,6 +17,7 @@ exports.updateProfile = async (req, res) => {
       ...(bio !== undefined && { bio }),
       ...(location !== undefined && { location }),
       ...(specialty !== undefined && { specialty }),
+      ...(experience !== undefined && { experience }),
       ...(website !== undefined && { website }),
       ...(instagram !== undefined && { instagram }),
       ...(twitter !== undefined && { twitter }),

@@ -77,6 +77,7 @@ const userSchema = new mongoose.Schema(
       bio: { type: String, default: "", maxlength: 500 },
       location: { type: String, default: "" },
       specialty: { type: String, default: "" },
+      experience: { type: String, default: "" },
       website: { type: String, default: "" },
       instagram: { type: String, default: "" },
       twitter: { type: String, default: "" },

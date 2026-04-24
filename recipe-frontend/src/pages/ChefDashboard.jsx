@@ -1,6 +1,6 @@
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   Plus,
@@ -29,6 +29,7 @@ import {
   Lock,
 } from "lucide-react";
 import { recipeAPI, chefAPI, userAPI } from "../services/api";
+import { getChefProfileCompletion } from "../utils/chefProfile";
 import "./ChefDashboard.css";
 
 /* ──────────────────────────────────────────
@@ -54,7 +55,6 @@ const EMPTY_RECIPE = {
   instructions: [{ id: 1, text: "", image: "" }],
   chefNote: "",
   isPublic: true,
-  allowComments: true,
 };
 
 /* Mock data removed — recipes are loaded from the API */
@@ -67,13 +67,26 @@ const SIDEBAR_TABS = [
   { id: "settings", label: "Profile Settings", icon: ChefHat },
 ];
 
+const getProfileState = (user) => ({
+  displayName: user?.profile?.displayName || user?.name || "",
+  bio: user?.profile?.bio || "",
+  location: user?.profile?.location || "",
+  specialty: user?.profile?.specialty || "",
+  experience: user?.profile?.experience || "",
+  website: user?.profile?.website || "",
+  instagram: user?.profile?.instagram || "",
+  twitter: user?.profile?.twitter || "",
+});
+
 /* ──────────────────────────────────────────
    COMPONENT
    ────────────────────────────────────────── */
 export default function ChefDashboard() {
-  const { user, isAuthenticated, loading, logout, updateUser } = useAuth();
+  const { user, isAuthenticated, loading, logout, updateUser, refreshUser } = useAuth();
   const navigate = useNavigate();
   const coverInputRef = useRef(null);
+  const hasPromptedForProfileRef = useRef(false);
+  const hasInitializedProfileRef = useRef(false);
 
   const [activeTab, setActiveTab] = useState("my-recipes");
   const isVerified = user?.verificationStatus === "verified";
@@ -90,18 +103,13 @@ export default function ChefDashboard() {
   const [newRecipe, setNewRecipe] = useState(JSON.parse(JSON.stringify(EMPTY_RECIPE)));
 
   /* — Profile settings — */
-  const [profile, setProfile] = useState({
-    displayName: user?.name || "",
-    bio: user?.profile?.bio || "",
-    location: user?.profile?.location || "",
-    specialty: user?.profile?.specialty || "",
-    experience: user?.profile?.experience || "",
-    website: user?.profile?.website || "",
-    instagram: user?.profile?.instagram || "",
-    twitter: user?.profile?.twitter || "",
-  });
+  const [profile, setProfile] = useState(getProfileState(user));
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+  const { isComplete: isSavedChefProfileComplete } = getChefProfileCompletion(
+    user?.profile,
+    user
+  );
 
   /* — Auth guard — */
   useEffect(() => {
@@ -119,6 +127,28 @@ export default function ChefDashboard() {
       .catch((err) => console.error("Failed to load recipes:", err))
       .finally(() => setRecipesLoading(false));
   }, [user]);
+
+  useEffect(() => {
+    if (!user || hasInitializedProfileRef.current) return;
+
+    setProfile(getProfileState(user));
+    hasInitializedProfileRef.current = true;
+  }, [user]);
+
+  useEffect(() => {
+    if (
+      hasPromptedForProfileRef.current ||
+      !user ||
+      isVerified ||
+      isPending ||
+      isSavedChefProfileComplete
+    ) {
+      return;
+    }
+
+    setActiveTab("settings");
+    hasPromptedForProfileRef.current = true;
+  }, [user, isVerified, isPending, isSavedChefProfileComplete]);
 
   if (loading) return null;
   if (!user || user.role !== "chef") return null;
@@ -308,18 +338,30 @@ export default function ChefDashboard() {
     try {
       const payload = {
         name: profile.displayName,
+        displayName: profile.displayName,
         bio: profile.bio,
         location: profile.location,
         specialty: profile.specialty,
+        experience: profile.experience,
         website: profile.website,
         instagram: profile.instagram,
         twitter: profile.twitter
       };
-      await userAPI.updateProfile(payload);
-      updateUser({
-        name: profile.displayName,
-        profile: { ...user.profile, ...payload }
-      });
+      const data = await userAPI.updateProfile(payload);
+      const refreshedUser = await refreshUser();
+      if (!refreshedUser) {
+        updateUser({
+          name: profile.displayName,
+          profile: data.profile || { ...user.profile, ...payload }
+        });
+        setProfile(getProfileState({
+          ...user,
+          name: profile.displayName,
+          profile: data.profile || { ...user.profile, ...payload },
+        }));
+      } else {
+        setProfile(getProfileState(refreshedUser));
+      }
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2000);
     } catch (err) {
@@ -375,10 +417,6 @@ export default function ChefDashboard() {
         </div>
 
         <div className="cd-sidebar-bottom">
-          <Link to="/" className="cd-nav-item cd-nav-home">
-            <Globe className="cd-nav-icon" />
-            <span>Back to Site</span>
-          </Link>
           <button onClick={logout} className="cd-nav-item cd-nav-logout">
             <LogOut className="cd-nav-icon" />
             <span>Sign Out</span>
@@ -424,18 +462,41 @@ export default function ChefDashboard() {
               </div>
               <div className="cd-verify-banner-text">
                 <h4 className="cd-verify-banner-title">
-                  {isPending ? 'Verification under review' : isRejected ? 'Verification was unsuccessful' : 'Identity verification required'}
+                  {isPending
+                    ? 'Verification under review'
+                    : !isSavedChefProfileComplete
+                    ? 'Complete your profile first'
+                    : isRejected
+                    ? 'Verification was unsuccessful'
+                    : 'Identity verification required'}
                 </h4>
                 <p className="cd-verify-banner-desc">
                   {isPending
                     ? 'Your documents are being reviewed. You can draft recipes, but publishing is locked until approval.'
+                    : !isSavedChefProfileComplete
+                    ? 'Add your display name, bio, location, specialty, and experience before starting identity verification.'
                     : isRejected
                     ? `Your verification was rejected${user?.verificationData?.rejectionReason ? `: ${user.verificationData.rejectionReason}` : '. Please resubmit your documents.'}`
                     : 'Complete identity verification to unlock recipe publishing.'}
                 </p>
               </div>
-              <button className="cd-verify-banner-btn" onClick={() => navigate('/chef-verification')}>
-                {isPending ? 'View Status' : isRejected ? 'Resubmit' : 'Verify Now'}
+              <button
+                className="cd-verify-banner-btn"
+                onClick={() => {
+                  if (!isPending && !isSavedChefProfileComplete) {
+                    setActiveTab("settings");
+                    return;
+                  }
+                  navigate('/chef-verification');
+                }}
+              >
+                {isPending
+                  ? 'View Status'
+                  : !isSavedChefProfileComplete
+                  ? 'Complete Profile'
+                  : isRejected
+                  ? 'Resubmit'
+                  : 'Verify Now'}
                 <ArrowRight size={14} />
               </button>
             </div>
@@ -1170,24 +1231,6 @@ export default function ChefDashboard() {
                           setNewRecipe({
                             ...newRecipe,
                             isPublic: !newRecipe.isPublic,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="cd-toggle-wrap cd-toggle-last">
-                      <div className="cd-toggle-info">
-                        <h4>Allow Comments</h4>
-                        <p>
-                          Readers can leave reviews and comments
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className={`cd-toggle-switch ${newRecipe.allowComments ? "active" : ""}`}
-                        onClick={() =>
-                          setNewRecipe({
-                            ...newRecipe,
-                            allowComments: !newRecipe.allowComments,
                           })
                         }
                       />

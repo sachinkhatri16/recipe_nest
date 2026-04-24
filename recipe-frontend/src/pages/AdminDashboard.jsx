@@ -106,7 +106,6 @@ export default function AdminDashboard() {
         {activeTab === "users" && <AdminUserManager/>}
         {activeTab === "recipes" && <AdminRecipes/>}
         {activeTab === "analytics" && <AdminAnalytics/>}
-        {activeTab === "settings" && <SettingsTab/>}
       </main>
     </div>
   );
@@ -193,61 +192,6 @@ function OverviewTab({ setActiveTab }) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/* ─── SETTINGS TAB ─── */
-function SettingsTab() {
-  const { user } = useAuth();
-  const [cleaning, setCleaning] = useState(false);
-
-  const handleClearSampleData = async () => {
-    if (!window.confirm("Remove the seeded sample chefs, users, and recipes from the database?")) {
-      return;
-    }
-
-    setCleaning(true);
-    const loadingToast = toast.loading("Removing sample data...");
-    try {
-      const result = await adminAPI.clearSampleData();
-      toast.success(result.message || "Sample data removed", { id: loadingToast });
-      window.location.reload();
-    } catch (err) {
-      console.error("Failed to remove sample data:", err);
-      toast.error(err.message || "Failed to remove sample data", { id: loadingToast });
-    } finally {
-      setCleaning(false);
-    }
-  };
-
-  return (
-    <div className="ad-content ad-fade-in">
-      <div className="ad-page-header"><div><h1 className="ad-page-title">Settings</h1><p className="ad-page-sub">Platform configuration</p></div></div>
-      <div className="ad-card"><div className="ad-card-body">
-        <div style={{display:"flex",flexDirection:"column",gap:20}}>
-          <div><label style={{fontSize:"0.8125rem",fontWeight:600,color:"#334155",display:"block",marginBottom:6}}>Platform Name</label><input className="ad-input" defaultValue="RecipeNest"/></div>
-          <div><label style={{fontSize:"0.8125rem",fontWeight:600,color:"#334155",display:"block",marginBottom:6}}>Admin Email</label><input className="ad-input" defaultValue={user?.email || ""} readOnly /></div>
-          <div style={{padding:"14px 16px",background:"#f0fdf4",borderRadius:10,border:"1px solid #bbf7d0"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-              <Shield size={16} style={{color:"#059669"}}/>
-              <span style={{fontSize:"0.8125rem",fontWeight:700,color:"#065f46"}}>Manual Verification Only</span>
-            </div>
-            <p style={{margin:0,fontSize:"0.8125rem",color:"#047857"}}>All chef verifications require admin review. You must personally inspect the submitted citizen number, email, and ID document photo before approving.</p>
-          </div>
-          <div style={{padding:"16px",background:"#fff7ed",borderRadius:10,border:"1px solid #fdba74"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,flexWrap:"wrap"}}>
-              <div>
-                <p style={{margin:"0 0 4px",fontSize:"0.875rem",fontWeight:700,color:"#9a3412"}}>Sample Data Cleanup</p>
-                <p style={{margin:0,fontSize:"0.8125rem",color:"#c2410c"}}>Use this once to remove the seeded demo chefs, recipes, and pending verifications from the admin panel.</p>
-              </div>
-              <button className="ad-btn-outline" onClick={handleClearSampleData} disabled={cleaning}>
-                {cleaning ? "Removing..." : "Remove Sample Data"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div></div>
     </div>
   );
 }

@@ -110,5 +110,4 @@ export const adminAPI = {
 
   // Analytics
   getAnalytics: () => request("/admin/analytics"),
-  clearSampleData: () => request("/admin/sample-data", { method: "DELETE" }),
 };

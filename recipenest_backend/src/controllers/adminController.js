@@ -3,19 +3,6 @@ const Recipe = require("../models/Recipe");
 const cloudinary = require("../config/cloudinary");
 const { decrypt } = require("../utils/crypto");
 
-const SEEDED_USER_EMAILS = [
-  "asha@mail.com",
-  "priya@mail.com",
-  "arjun@mail.com",
-  "rajan@mail.com",
-  "sita@mail.com",
-  "bikash@mail.com",
-  "deepak@mail.com",
-  "binod@mail.com",
-  "meera@mail.com",
-  "kamal@mail.com",
-];
-
 // GET /api/admin/users — list all users
 exports.getUsers = async (req, res) => {
   try {
@@ -401,59 +388,5 @@ exports.getAnalytics = async (req, res) => {
   } catch (err) {
     console.error("GetAnalytics error:", err);
     res.status(500).json({ message: err.message || "Server error while fetching analytics" });
-  }
-};
-
-// DELETE /api/admin/sample-data
-exports.clearSampleData = async (req, res) => {
-  try {
-    const seededUsers = await User.find({
-      email: { $in: SEEDED_USER_EMAILS },
-      role: { $ne: "admin" },
-    })
-      .select("_id")
-      .lean();
-
-    const seededUserIds = seededUsers.map((user) => user._id);
-    const seededRecipes = await Recipe.find({
-      chef: { $in: seededUserIds },
-    })
-      .select("_id")
-      .lean();
-    const seededRecipeIds = seededRecipes.map((recipe) => recipe._id);
-
-    if (seededUserIds.length === 0 && seededRecipeIds.length === 0) {
-      return res.json({
-        message: "No seeded sample data found",
-        deletedUsers: 0,
-        deletedRecipes: 0,
-      });
-    }
-
-    await User.updateMany(
-      {},
-      {
-        $pull: {
-          savedRecipes: { $in: seededRecipeIds },
-          savedChefs: { $in: seededUserIds },
-        },
-      }
-    );
-
-    const deletedRecipesResult = seededRecipeIds.length
-      ? await Recipe.deleteMany({ _id: { $in: seededRecipeIds } })
-      : { deletedCount: 0 };
-    const deletedUsersResult = seededUserIds.length
-      ? await User.deleteMany({ _id: { $in: seededUserIds } })
-      : { deletedCount: 0 };
-
-    res.json({
-      message: "Seeded sample data removed",
-      deletedUsers: deletedUsersResult.deletedCount || 0,
-      deletedRecipes: deletedRecipesResult.deletedCount || 0,
-    });
-  } catch (err) {
-    console.error("ClearSampleData error:", err);
-    res.status(500).json({ message: err.message || "Server error while removing sample data" });
   }
 };

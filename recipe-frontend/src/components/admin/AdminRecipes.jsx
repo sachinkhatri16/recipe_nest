@@ -97,74 +97,106 @@ export default function AdminRecipes() {
       {/* View Recipe Modal */}
       {viewRecipe && (
         <div className="ad-modal-overlay" onClick={() => setViewRecipe(null)}>
-          <div className="ad-modal" onClick={e => e.stopPropagation()} style={{maxWidth: 600, maxHeight: '90vh', overflowY: 'auto'}}>
-            <h3 style={{margin:"0 0 16px"}}>Recipe Details</h3>
+          <div className="ad-modal" onClick={e => e.stopPropagation()} style={{maxWidth: 700, maxHeight: '90vh', overflowY: 'auto', padding: 24}}>
+            <h3 style={{margin:"0 0 20px", fontSize: "1.5rem", fontWeight: 700, color: "#1e293b"}}>Recipe Details</h3>
             
-            <div style={{display: "flex", gap: 20, marginBottom: 20}}>
-              <div style={{flex: "0 0 150px"}}>
+            <div style={{display: "flex", gap: 24, marginBottom: 24}}>
+              <div style={{flex: "0 0 200px"}}>
                 <img 
                   src={viewRecipe.coverImage || "https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&q=80"} 
                   alt={viewRecipe.title}
-                  style={{width: "100%", height: 150, objectFit: "cover", borderRadius: 8}}
+                  style={{width: "200px", height: "200px", objectFit: "cover", borderRadius: 12, boxShadow: "0 4px 6px rgba(0,0,0,0.05)"}}
                 />
               </div>
               <div style={{flex: 1}}>
-                <h4 style={{margin: "0 0 8px", fontSize: "1.2rem"}}>{viewRecipe.title}</h4>
-                <div style={{display: "flex", gap: 8, marginBottom: 12}}>
-                  <span className="ad-pill ad-pill-slate">{viewRecipe.category || "Uncategorized"}</span>
-                  <span className={`ad-pill ${viewRecipe.status==="Published"?"ad-pill-green":"ad-pill-amber"}`}>{viewRecipe.status || "Draft"}</span>
+                <h4 style={{margin: "0 0 12px", fontSize: "1.5rem", color: "#0f172a"}}>{viewRecipe.title}</h4>
+                <div style={{display: "flex", gap: 8, marginBottom: 16}}>
+                  <span className="ad-pill ad-pill-slate" style={{fontSize: "0.875rem"}}>{viewRecipe.category || "Uncategorized"}</span>
+                  <span className={`ad-pill ${viewRecipe.status==="Published"?"ad-pill-green":"ad-pill-amber"}`} style={{fontSize: "0.875rem"}}>{viewRecipe.status || "Draft"}</span>
                 </div>
-                <div style={{display: "flex", alignItems: "center", gap: 8, color: "#64748b", fontSize: "0.875rem", marginBottom: 12}}>
-                  <div className="ad-user-avatar chef" style={{width: 24, height: 24, fontSize: "0.7rem"}}>
+                <div style={{display: "flex", alignItems: "center", gap: 10, color: "#64748b", fontSize: "0.95rem", marginBottom: 16}}>
+                  <div className="ad-user-avatar chef" style={{width: 28, height: 28, fontSize: "0.8rem"}}>
                     {(viewRecipe.chef?.name || "C").charAt(0)}
                   </div>
-                  <span>By {viewRecipe.chef?.name || "Unknown Chef"}</span>
+                  <span style={{fontWeight: 500}}>By {viewRecipe.chef?.name || "Unknown Chef"}</span>
                   <span>•</span>
                   <span>{new Date(viewRecipe.createdAt).toLocaleDateString()}</span>
                 </div>
-                <p style={{margin: 0, fontSize: "0.875rem", color: "#475569", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden"}}>
+                <p style={{margin: 0, fontSize: "0.95rem", color: "#475569", lineHeight: 1.6}}>
                   {viewRecipe.description || "No description provided."}
                 </p>
               </div>
             </div>
 
-            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20}}>
-              <div style={{background: "#f8fafc", padding: 12, borderRadius: 8}}>
-                <span style={{fontSize: "0.75rem", color: "#64748b", display: "block", marginBottom: 4}}>Cooking Info</span>
-                <div style={{display: "flex", flexDirection: "column", gap: 4, fontSize: "0.875rem", color: "#334155"}}>
-                  <div><strong>Prep:</strong> {viewRecipe.prepTime || 0} mins</div>
-                  <div><strong>Cook:</strong> {viewRecipe.cookTime || 0} mins</div>
-                  <div><strong>Servings:</strong> {viewRecipe.servings || 0}</div>
-                  <div><strong>Level:</strong> {viewRecipe.level || "Not set"}</div>
+            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24}}>
+              <div style={{background: "#f8fafc", padding: 16, borderRadius: 12, border: "1px solid #e2e8f0"}}>
+                <span style={{fontWeight: 600, color: "#334155", display: "block", marginBottom: 12, borderBottom: "1px solid #e2e8f0", paddingBottom: 8}}>Cooking Info</span>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: "0.95rem", color: "#475569"}}>
+                  <div><strong style={{color:"#1e293b"}}>Prep:</strong> {viewRecipe.prepTime || 0} mins</div>
+                  <div><strong style={{color:"#1e293b"}}>Cook:</strong> {viewRecipe.cookTime || 0} mins</div>
+                  <div><strong style={{color:"#1e293b"}}>Servings:</strong> {viewRecipe.servings || 0}</div>
+                  <div><strong style={{color:"#1e293b"}}>Level:</strong> {viewRecipe.level || "Not set"}</div>
                 </div>
               </div>
-              <div style={{background: "#f8fafc", padding: 12, borderRadius: 8}}>
-                <span style={{fontSize: "0.75rem", color: "#64748b", display: "block", marginBottom: 4}}>Content Stats</span>
-                <div style={{display: "flex", flexDirection: "column", gap: 4, fontSize: "0.875rem", color: "#334155"}}>
-                  <div><strong>Ingredients:</strong> {viewRecipe.ingredients?.length || 0} items</div>
-                  <div><strong>Instructions:</strong> {viewRecipe.instructions?.length || 0} steps</div>
-                  <div><strong>Tags:</strong> {viewRecipe.tags?.length || 0}</div>
-                  <div><strong>Reviews:</strong> {viewRecipe.reviews?.length || 0}</div>
+              <div style={{background: "#f8fafc", padding: 16, borderRadius: 12, border: "1px solid #e2e8f0"}}>
+                <span style={{fontWeight: 600, color: "#334155", display: "block", marginBottom: 12, borderBottom: "1px solid #e2e8f0", paddingBottom: 8}}>Content Stats</span>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: "0.95rem", color: "#475569"}}>
+                  <div><strong style={{color:"#1e293b"}}>Ingredients:</strong> {viewRecipe.ingredients?.length || 0} items</div>
+                  <div><strong style={{color:"#1e293b"}}>Instructions:</strong> {viewRecipe.instructions?.length || 0} steps</div>
+                  <div><strong style={{color:"#1e293b"}}>Tags:</strong> {viewRecipe.tags?.length || 0}</div>
+                  <div><strong style={{color:"#1e293b"}}>Reviews:</strong> {viewRecipe.reviews?.length || 0}</div>
                 </div>
               </div>
             </div>
 
+            {viewRecipe.ingredients && viewRecipe.ingredients.length > 0 && (
+              <div style={{marginBottom: 24}}>
+                <h5 style={{fontSize: "1.1rem", color: "#1e293b", margin: "0 0 12px"}}>Ingredients</h5>
+                <ul style={{margin: 0, paddingLeft: 20, color: "#475569", fontSize: "0.95rem", display: "flex", flexDirection: "column", gap: 6}}>
+                  {viewRecipe.ingredients.map((ing, idx) => (
+                    <li key={idx}><strong>{ing.quantity} {ing.unit}</strong> {ing.name}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {viewRecipe.instructions && viewRecipe.instructions.length > 0 && (
+              <div style={{marginBottom: 24}}>
+                <h5 style={{fontSize: "1.1rem", color: "#1e293b", margin: "0 0 12px"}}>Instructions</h5>
+                <ol style={{margin: 0, paddingLeft: 20, color: "#475569", fontSize: "0.95rem", display: "flex", flexDirection: "column", gap: 10}}>
+                  {viewRecipe.instructions.map((inst, idx) => (
+                    <li key={idx} style={{lineHeight: 1.5}}>{inst.step}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
             {viewRecipe.tags && viewRecipe.tags.length > 0 && (
-              <div style={{marginBottom: 20}}>
-                <span style={{fontSize: "0.75rem", color: "#64748b", display: "block", marginBottom: 8}}>Tags</span>
-                <div style={{display: "flex", flexWrap: "wrap", gap: 6}}>
+              <div style={{marginBottom: 24}}>
+                <h5 style={{fontSize: "1.1rem", color: "#1e293b", margin: "0 0 12px"}}>Tags</h5>
+                <div style={{display: "flex", flexWrap: "wrap", gap: 8}}>
                   {viewRecipe.tags.map((tag, idx) => (
-                    <span key={idx} style={{background: "#e2e8f0", color: "#475569", padding: "2px 8px", borderRadius: 12, fontSize: "0.75rem"}}>
-                      {tag}
+                    <span key={idx} style={{background: "#f1f5f9", border: "1px solid #cbd5e1", color: "#475569", padding: "4px 12px", borderRadius: 16, fontSize: "0.85rem", fontWeight: 500}}>
+                      #{tag}
                     </span>
                   ))}
                 </div>
               </div>
             )}
 
-            <div style={{display:"flex",justifyContent:"flex-end", gap: 10}}>
-              <button className="ad-btn-sm ad-btn-sm-reject" onClick={() => { setDeleteConfirm(viewRecipe); setViewRecipe(null); }}><Trash2 size={14}/> Delete</button>
-              <button className="ad-btn-outline" onClick={() => setViewRecipe(null)}>Close</button>
+            <div style={{display:"flex",justifyContent:"flex-end", gap: 12, marginTop: 32, paddingTop: 20, borderTop: "1px solid #e2e8f0"}}>
+              <button 
+                style={{padding: "10px 20px", background: "#fee2e2", color: "#b91c1c", border: "none", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontWeight: 600}} 
+                onClick={() => { setDeleteConfirm(viewRecipe); setViewRecipe(null); }}
+              >
+                <Trash2 size={16}/> Delete Recipe
+              </button>
+              <button 
+                style={{padding: "10px 24px", background: "#f8fafc", color: "#334155", border: "1px solid #cbd5e1", borderRadius: 8, cursor: "pointer", fontWeight: 600}} 
+                onClick={() => setViewRecipe(null)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

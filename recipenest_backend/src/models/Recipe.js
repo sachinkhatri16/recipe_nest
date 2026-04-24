@@ -102,7 +102,6 @@ const recipeSchema = new mongoose.Schema(
     reviews: [reviewSchema],
 
     isPublic: { type: Boolean, default: true },
-    allowComments: { type: Boolean, default: true },
   },
   {
     timestamps: true,
