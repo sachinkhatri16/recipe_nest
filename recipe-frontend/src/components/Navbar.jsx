@@ -87,7 +87,7 @@ export default function Navbar({ activeItem = "Home" }) {
                   to="/auth?tab=signup"
                   className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5 duration-200"
                 >
-                  Join Free
+                  Sign up
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </>

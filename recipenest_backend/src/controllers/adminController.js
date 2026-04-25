@@ -19,7 +19,7 @@ exports.getUsers = async (req, res) => {
     }
 
     const users = await User.find(filter)
-      .select("name email role status verificationStatus banReason banType createdAt profile.avatar")
+      .select("name email role status verificationStatus banReason banType createdAt profile verificationData")
       .sort({ createdAt: -1 })
       .lean();
 

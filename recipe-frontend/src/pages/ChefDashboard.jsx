@@ -822,7 +822,7 @@ export default function ChefDashboard() {
                             title: e.target.value,
                           })
                         }
-                        placeholder="e.g. Classic Beef Bourguignon"
+                        placeholder="e.g. Classic buff Bourguignon"
                       />
                     </div>
 
@@ -1085,7 +1085,7 @@ export default function ChefDashboard() {
                                 e.target.value
                               )
                             }
-                            placeholder="Beef chuck, cubed"
+                            placeholder="buff chuck, cubed"
                           />
                           <input
                             type="text"

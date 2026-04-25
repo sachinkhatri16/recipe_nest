@@ -278,6 +278,144 @@
   box-shadow: 0 20px 60px rgba(0,0,0,0.15);
 }
 
+.ad-profile-modal {
+  max-width: 760px;
+  padding: 40px 56px 34px;
+  border-radius: 28px;
+}
+
+.ad-profile-modal-title {
+  margin: 0 0 32px;
+  color: #17213a;
+  font-size: clamp(1.8rem, 2vw, 2.3rem);
+  letter-spacing: -0.04em;
+}
+
+.ad-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-bottom: 32px;
+}
+
+.ad-profile-avatar-wrap {
+  flex-shrink: 0;
+}
+
+.ad-profile-avatar {
+  width: 120px;
+  height: 120px;
+  font-size: 3.4rem;
+}
+
+.ad-profile-avatar-image {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #e2e8f0;
+  display: block;
+}
+
+.ad-profile-hero-content {
+  min-width: 0;
+}
+
+.ad-profile-name {
+  margin: 0 0 10px;
+  color: #17213a;
+  font-size: clamp(1.9rem, 2.4vw, 2.85rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  word-break: break-word;
+}
+
+.ad-profile-email {
+  margin: 0 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: clamp(1rem, 1.6vw, 1.25rem);
+  word-break: break-word;
+}
+
+.ad-profile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ad-profile-badges .ad-pill {
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.ad-profile-panel {
+  margin-bottom: 28px;
+  padding: 28px 30px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f3f7fb 100%);
+}
+
+.ad-profile-panel-title {
+  margin: 0 0 24px;
+  color: #334155;
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+.ad-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 40px;
+}
+
+.ad-profile-field {
+  min-width: 0;
+}
+
+.ad-profile-field-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.ad-profile-field-value {
+  color: #334155;
+  font-size: 1.2rem;
+  font-weight: 500;
+  word-break: break-word;
+  text-transform: none;
+}
+
+.ad-profile-bio {
+  margin-top: 24px;
+}
+
+.ad-profile-bio-text {
+  margin: 10px 0 0;
+  color: #475569;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.ad-profile-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ad-profile-actions .ad-btn-outline {
+  padding: 14px 28px;
+  border-width: 2px;
+  border-radius: 18px;
+  font-size: 1rem;
+}
+
 /* ─── TOGGLE ─── */
 .ad-toggle {
   position: relative; width: 44px; height: 24px;
@@ -393,4 +531,32 @@
 @media (max-width: 860px) {
   .ad-main { padding: 16px; }
   .ad-page-title { font-size: 1.35rem; }
+  .ad-profile-modal {
+    padding: 28px 22px 24px;
+    border-radius: 22px;
+  }
+  .ad-profile-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  .ad-profile-avatar,
+  .ad-profile-avatar-image {
+    width: 92px;
+    height: 92px;
+  }
+  .ad-profile-avatar {
+    font-size: 2.6rem;
+  }
+  .ad-profile-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .ad-profile-actions {
+    justify-content: stretch;
+  }
+  .ad-profile-actions .ad-btn-outline {
+    width: 100%;
+    justify-content: center;
+  }
 }

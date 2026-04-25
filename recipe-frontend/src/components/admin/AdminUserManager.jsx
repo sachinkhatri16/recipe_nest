@@ -23,6 +23,17 @@ export default function AdminUserManager() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!banModal && !viewUser) return undefined;
+
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = overflow;
+    };
+  }, [banModal, viewUser]);
+
   const filtered = users.filter(u => {
     const matchSearch = (u.name || "").toLowerCase().includes(search.toLowerCase()) || (u.email || "").toLowerCase().includes(search.toLowerCase());
     const statusLabel = u.status === "banned" ? "banned" : "active";
@@ -35,6 +46,34 @@ export default function AdminUserManager() {
   const activeUsers = countableUsers.filter(u => u.status !== "banned").length;
   const chefs = countableUsers.filter(u => u.role === "chef").length;
   const banned = countableUsers.filter(u => u.status === "banned").length;
+
+  const getRoleLabel = (role) => {
+    if (role === "admin") return "Admin";
+    if (role === "chef") return "Chef";
+    return "Food Lover";
+  };
+
+  const getStatusLabel = (status) => (status === "banned" ? "Banned" : "Active");
+
+  const formatVerificationStatus = (status) => {
+    if (!status) return "N/A";
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const getChefSpecialty = (user) =>
+    user?.profile?.specialty || user?.verificationData?.specialty || "N/A";
+
+  const getChefLocation = (user) =>
+    user?.profile?.location || "N/A";
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return "N/A";
+
+    return parsed.toLocaleDateString("en-US");
+  };
 
   const handleBan = async (id) => {
     if (!banReason.trim()) {
@@ -92,7 +131,7 @@ export default function AdminUserManager() {
         <div className="ad-card"><div className="ad-card-body-flush"><div className="ad-table-wrap">
           <table className="ad-table"><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody>{filtered.map(u => {
-            const status = u.status === "banned" ? "Banned" : "Active";
+            const status = getStatusLabel(u.status);
             const isAdmin = u.role === "admin";
             return (
               <tr key={u._id}>
@@ -149,61 +188,93 @@ export default function AdminUserManager() {
       {/* View User Modal */}
       {viewUser && (
         <div className="ad-modal-overlay" onClick={() => setViewUser(null)}>
-          <div className="ad-modal" onClick={e => e.stopPropagation()} style={{maxWidth: 500}}>
-            <h3 style={{margin:"0 0 16px"}}>User Profile</h3>
-            <div style={{display:"flex", alignItems:"center", gap: 16, marginBottom: 20}}>
-              <div className={`ad-user-avatar ${viewUser.role}`} style={{width: 60, height: 60, fontSize: "2rem"}}>
-                {(viewUser.name || "U").charAt(0)}
+          <div className="ad-modal ad-profile-modal" onClick={e => e.stopPropagation()}>
+            <h3 className="ad-profile-modal-title">User Profile</h3>
+
+            <div className="ad-profile-hero">
+              <div className="ad-profile-avatar-wrap">
+                {viewUser.profile?.avatar ? (
+                  <img
+                    src={viewUser.profile.avatar}
+                    alt={viewUser.profile?.displayName || viewUser.name || "User avatar"}
+                    className="ad-profile-avatar-image"
+                  />
+                ) : (
+                  <div className={`ad-user-avatar ${viewUser.role} ad-profile-avatar`}>
+                    {(viewUser.profile?.displayName || viewUser.name || "U").charAt(0).toUpperCase()}
+                  </div>
+                )}
               </div>
-              <div>
-                <h4 style={{margin: "0 0 4px", fontSize: "1.1rem"}}>{viewUser.name || "Unknown"}</h4>
-                <p style={{margin: "0 0 4px", color: "#64748b", display: "flex", alignItems: "center", gap: 4}}>
-                  <Mail size={14}/> {viewUser.email}
+
+              <div className="ad-profile-hero-content">
+                <h4 className="ad-profile-name">
+                  {viewUser.profile?.displayName || viewUser.name || "Unknown"}
+                </h4>
+                <p className="ad-profile-email">
+                  <Mail size={18}/> {viewUser.email}
                 </p>
-                <div style={{display: "flex", gap: 8}}>
+                <div className="ad-profile-badges">
                   <span className={`ad-pill ${viewUser.role==="admin" ? "ad-pill-violet" : viewUser.role==="chef"?"ad-pill-blue":"ad-pill-slate"}`}>
-                    {viewUser.role === "admin" ? "Admin" : viewUser.role === "chef" ? "Chef" : "Food Lover"}
+                    {getRoleLabel(viewUser.role)}
                   </span>
                   <span className={`ad-pill ${viewUser.status==="active"?"ad-pill-green":"ad-pill-red"}`}>
-                    {viewUser.status === "active" ? "Active" : "Banned"}
+                    {getStatusLabel(viewUser.status)}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div style={{background: "#f8fafc", padding: 16, borderRadius: 8, marginBottom: 20}}>
-              <h5 style={{margin: "0 0 12px", color: "#334155"}}>Profile Details</h5>
-              <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12}}>
-                <div>
-                  <span style={{fontSize: "0.75rem", color: "#64748b", display: "block"}}>Joined Date</span>
-                  <span style={{fontSize: "0.875rem", color: "#334155"}}>{new Date(viewUser.createdAt).toLocaleDateString()}</span>
+            <div className="ad-profile-panel">
+              <h5 className="ad-profile-panel-title">Profile Details</h5>
+              <div className="ad-profile-grid">
+                <div className="ad-profile-field">
+                  <span className="ad-profile-field-label">Joined Date</span>
+                  <span className="ad-profile-field-value">{formatDate(viewUser.createdAt)}</span>
                 </div>
-                {viewUser.role === "chef" && viewUser.profile && (
-                  <>
-                    <div>
-                      <span style={{fontSize: "0.75rem", color: "#64748b", display: "block"}}>Specialty</span>
-                      <span style={{fontSize: "0.875rem", color: "#334155"}}>{viewUser.profile.specialty || "N/A"}</span>
-                    </div>
-                    <div>
-                      <span style={{fontSize: "0.75rem", color: "#64748b", display: "block"}}>Location</span>
-                      <span style={{fontSize: "0.875rem", color: "#334155"}}>{viewUser.profile.location || "N/A"}</span>
-                    </div>
-                    <div>
-                      <span style={{fontSize: "0.75rem", color: "#64748b", display: "block"}}>Verification</span>
-                      <span style={{fontSize: "0.875rem", color: "#334155"}}>{viewUser.verificationStatus || "N/A"}</span>
-                    </div>
-                  </>
-                )}
+
+                <div className="ad-profile-field">
+                  <span className="ad-profile-field-label">
+                    {viewUser.role === "chef" ? "Specialty" : "Role"}
+                  </span>
+                  <span className="ad-profile-field-value">
+                    {viewUser.role === "chef"
+                      ? getChefSpecialty(viewUser)
+                      : getRoleLabel(viewUser.role)}
+                  </span>
+                </div>
+
+                <div className="ad-profile-field">
+                  <span className="ad-profile-field-label">
+                    {viewUser.role === "chef" ? "Location" : "Status"}
+                  </span>
+                  <span className="ad-profile-field-value">
+                    {viewUser.role === "chef"
+                      ? getChefLocation(viewUser)
+                      : getStatusLabel(viewUser.status)}
+                  </span>
+                </div>
+
+                <div className="ad-profile-field">
+                  <span className="ad-profile-field-label">
+                    {viewUser.role === "chef" ? "Verification" : "Experience"}
+                  </span>
+                  <span className="ad-profile-field-value">
+                    {viewUser.role === "chef"
+                      ? formatVerificationStatus(viewUser.verificationStatus)
+                      : viewUser.profile?.experience || "N/A"}
+                  </span>
+                </div>
               </div>
+
               {viewUser.profile?.bio && (
-                <div style={{marginTop: 12}}>
-                  <span style={{fontSize: "0.75rem", color: "#64748b", display: "block"}}>Bio</span>
-                  <p style={{fontSize: "0.875rem", color: "#334155", margin: "4px 0 0"}}>{viewUser.profile.bio}</p>
+                <div className="ad-profile-bio">
+                  <span className="ad-profile-field-label">Bio</span>
+                  <p className="ad-profile-bio-text">{viewUser.profile.bio}</p>
                 </div>
               )}
             </div>
 
-            <div style={{display:"flex",justifyContent:"flex-end"}}>
+            <div className="ad-profile-actions">
               <button className="ad-btn-outline" onClick={() => setViewUser(null)}>Close</button>
             </div>
           </div>
