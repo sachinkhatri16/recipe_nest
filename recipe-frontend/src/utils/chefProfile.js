@@ -9,12 +9,14 @@ const REQUIRED_CHEF_PROFILE_FIELDS = [
 const normalizeValue = (value) => (typeof value === "string" ? value.trim() : "");
 
 export function getChefProfileCompletion(profile = {}, user = {}) {
+  const safeProfile = profile || {};
+  const safeUser = user || {};
   const resolvedProfile = {
-    displayName: normalizeValue(profile.displayName || user.name),
-    bio: normalizeValue(profile.bio),
-    location: normalizeValue(profile.location),
-    specialty: normalizeValue(profile.specialty),
-    experience: normalizeValue(profile.experience),
+    displayName: normalizeValue(safeProfile.displayName || safeUser.name),
+    bio: normalizeValue(safeProfile.bio),
+    location: normalizeValue(safeProfile.location),
+    specialty: normalizeValue(safeProfile.specialty),
+    experience: normalizeValue(safeProfile.experience),
   };
 
   const missingFields = REQUIRED_CHEF_PROFILE_FIELDS.filter(

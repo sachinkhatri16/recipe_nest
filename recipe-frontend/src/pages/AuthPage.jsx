@@ -96,8 +96,14 @@ export default function AuthPage() {
       }
     }
 
-    if (signupPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (signupPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(signupPassword)) {
+      setError("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
       return;
     }
 
